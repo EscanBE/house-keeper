@@ -7,6 +7,7 @@ import (
 	logtypes "github.com/EscanBE/go-lib/logging/types"
 	libbot "github.com/EscanBE/go-lib/telegram/bot"
 	libutils "github.com/EscanBE/go-lib/utils"
+	"github.com/EscanBE/house-keeper/cmd/db"
 	list "github.com/EscanBE/house-keeper/cmd/files"
 	"github.com/EscanBE/house-keeper/config"
 	"github.com/EscanBE/house-keeper/constants"
@@ -44,6 +45,7 @@ func init() {
 	cobra.OnInitialize(initConfig)
 
 	rootCmd.AddCommand(list.Commands())
+	rootCmd.AddCommand(db.Commands())
 
 	// rootCmd.PersistentFlags().StringVar(&homeDir, constants.FLAG_HOME, utils.GetDefaultHomeDirectory(), "Specify the home directory location instead of default")
 }
