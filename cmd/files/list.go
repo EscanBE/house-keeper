@@ -57,6 +57,12 @@ func ListingCommands() *cobra.Command {
 		"skip first N results",
 	)
 
+	cmd.PersistentFlags().Bool(
+		constants.FLAG_DELETE,
+		false,
+		"files in result will be deleted, make sure permission setup correctly",
+	)
+
 	return cmd
 }
 
@@ -76,10 +82,14 @@ func listFiles(cmd *cobra.Command, _ []string) {
 
 	orderByDesc, _ := cmd.Flags().GetBool(constants.FLAG_DESC)
 
+	deleteResultFiles, _ := cmd.Flags().GetBool(constants.FLAG_DELETE)
+
 	skip, _ := cmd.Flags().GetInt(constants.FLAG_SKIP)
 	if skip < 0 {
 		panic(fmt.Errorf("negative value for flag --%s", constants.FLAG_SKIP))
 	}
+
+	containsString, _ := cmd.Flags().GetStringArray(constants.FLAG_CONTAINS)
 
 	workingDir, _ := cmd.Flags().GetString(constants.FLAG_WORKING_DIR)
 	workingDir = strings.TrimSpace(workingDir)
@@ -99,7 +109,6 @@ func listFiles(cmd *cobra.Command, _ []string) {
 
 	files := goe.NewIEnumerable[string](listFilesWithinDir(workingDir)...)
 
-	containsString, _ := cmd.Flags().GetStringArray(constants.FLAG_CONTAINS)
 	if len(containsString) > 0 {
 		for _, part := range containsString {
 			if len(part) > 0 {
@@ -139,7 +148,22 @@ func listFiles(cmd *cobra.Command, _ []string) {
 		panic(fmt.Errorf("not supported value \"%s\" for flag --%s", orderBy, constants.FLAG_ORDER_BY))
 	}
 
-	for _, file := range files.Skip(skip).ToArray() {
+	files = files.Skip(skip)
+
+	if !files.Any() {
+		return
+	}
+
+	if deleteResultFiles {
+		for _, file := range files.ToArray() {
+			err = os.RemoveAll(file)
+			if err != nil {
+				panic(errors.Wrap(err, "failed to delete file"))
+			}
+		}
+	}
+
+	for _, file := range files.ToArray() {
 		fmt.Println(file)
 	}
 }

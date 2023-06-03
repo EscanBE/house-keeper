@@ -25,6 +25,7 @@ const (
 	FLAG_DESC        = "desc"
 	FLAG_SILENT      = "silent"
 	FLAG_SKIP        = "skip"
+	FLAG_DELETE      = "delete"
 )
 
 //goland:noinspection GoSnakeCaseUsage
