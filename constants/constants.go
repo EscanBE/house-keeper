@@ -26,10 +26,25 @@ const (
 	FLAG_SILENT      = "silent"
 	FLAG_SKIP        = "skip"
 	FLAG_DELETE      = "delete"
+
+	FLAG_TYPE          = "type"
+	FLAG_HOST          = "host"
+	FLAG_PORT          = "port"
+	FLAG_DB_NAME       = "dbname"
+	FLAG_USER_NAME     = "username"
+	FLAG_SCHEMA        = "schema"
+	FLAG_OUTPUT_FILE   = "output-file"
+	FLAG_PASSWORD_FILE = "password-file"
+	FLAG_TOOL_FILE     = "tool-file"
 )
 
 //goland:noinspection GoSnakeCaseUsage
 const (
 	FILE_PERMISSION     = 0o600
 	FILE_PERMISSION_STR = "600"
+)
+
+//goland:noinspection GoSnakeCaseUsage
+const (
+	ENV_PG_PASSWORD = "PGPASSWORD"
 )
