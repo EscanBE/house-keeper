@@ -34,6 +34,12 @@ func BackupCommands() *cobra.Command {
 		"file path which store password of the user which will be used to backup the database",
 	)
 
+	cmd.PersistentFlags().String(
+		constants.FLAG_TOOL_FILE,
+		"",
+		"absolute file path of the tool will be used to dump database, eg: /usr/bin/pg_dump for PostgreSQL",
+	)
+
 	return cmd
 }
 
@@ -98,6 +104,18 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 	schema, _ := cmd.Flags().GetString(constants.FLAG_SCHEMA)
 	schema = strings.TrimSpace(schema)
 
+	toolName := "pg_dump"
+	customToolName, _ := cmd.Flags().GetString(constants.FLAG_TOOL_FILE)
+	customToolName = strings.TrimSpace(customToolName)
+	if len(customToolName) > 0 {
+		_, err = os.Stat(customToolName)
+		if os.IsNotExist(err) {
+			panic(fmt.Errorf("custom tool file does not exists: %s", customToolName))
+		}
+
+		toolName = customToolName
+	}
+
 	dbType, _ := cmd.Flags().GetString(constants.FLAG_TYPE)
 	if len(dbType) < 1 {
 		panic(fmt.Errorf("missing value for mandatory flag --%s", constants.FLAG_TYPE))
@@ -155,7 +173,7 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 	fmt.Println("Output file:", outputFilePath)
 	fmt.Println("Begin dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
 
-	excCmd := exec.Command("pg_dump", args...)
+	excCmd := exec.Command(toolName, args...)
 	excCmd.Env = envVar
 	stdout, err := excCmd.Output()
 	if err != nil {

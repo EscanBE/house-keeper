@@ -35,6 +35,7 @@ const (
 	FLAG_SCHEMA        = "schema"
 	FLAG_OUTPUT_FILE   = "output-file"
 	FLAG_PASSWORD_FILE = "password-file"
+	FLAG_TOOL_FILE     = "tool-file"
 )
 
 //goland:noinspection GoSnakeCaseUsage
