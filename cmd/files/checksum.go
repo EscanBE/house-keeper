@@ -4,6 +4,7 @@ import (
 	"bufio"
 	"fmt"
 	"github.com/EscanBE/house-keeper/constants"
+	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
@@ -26,6 +27,12 @@ func ChecksumCommands() *cobra.Command {
 		constants.FLAG_TOOL_FILE,
 		"",
 		"absolute file path of the checksum tool",
+	)
+
+	cmd.PersistentFlags().String(
+		constants.FLAG_OUTPUT_FILE,
+		"",
+		"append output to file",
 	)
 
 	return cmd
@@ -75,6 +82,34 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		fmt.Println("problem when starting app", toolName, err)
 	}
 
+	var outputFile *os.File
+	outputFilePath, _ := cmd.Flags().GetString(constants.FLAG_OUTPUT_FILE)
+	outputFilePath = strings.TrimSpace(outputFilePath)
+	if len(outputFilePath) > 0 {
+		outputFile, err = os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+		if err != nil {
+			panic(errors.Wrap(err, "failed to open file for append: "+outputFilePath))
+		}
+	} else {
+		outputFile = nil
+	}
+
+	defer func() {
+		if outputFile != nil {
+			_ = outputFile.Close()
+		}
+	}()
+
+	appendOutput := func(text string) {
+		if outputFile == nil {
+			return
+		}
+
+		if _, err := outputFile.WriteString(text); err != nil {
+			fmt.Println("failed to append to output file", err)
+		}
+	}
+
 	var wg sync.WaitGroup
 	wg.Add(1)
 	go func() {
@@ -82,10 +117,14 @@ func checksumFile(cmd *cobra.Command, args []string) {
 			oScan := rsyncStdOutScanner.Scan()
 			eScan := rsyncStdErrScanner.Scan()
 			if oScan {
-				fmt.Println(rsyncStdOutScanner.Text())
+				msg := rsyncStdOutScanner.Text()
+				fmt.Println(msg)
+				appendOutput(msg + "\n")
 			}
 			if eScan {
-				fmt.Println(rsyncStdErrScanner.Text())
+				msg := rsyncStdErrScanner.Text()
+				fmt.Println(msg)
+				appendOutput(msg + "\n")
 			}
 			if !oScan && !eScan {
 				break
