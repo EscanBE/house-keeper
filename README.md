@@ -1,6 +1,6 @@
 ## House Keeper
 #### A tool to manage Escan
-> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.3.0
+> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.4.0
 
 ### Commands:
 
@@ -10,6 +10,22 @@
 > hkd files list --working-directory '/tmp' --order-by date --contains '0' --skip 1
 
 > hkd files list --working-directory '/tmp/backup-db' --order-by name --desc --contains '.dump' --skip 3 --silent --delete
+
+#### Sync files:
+> hkd files rsync --help
+
+> RSYNC_PASSWORD=1234567 hkd files rsync /var/log/nginx/access.log backup@192.168.0.2:/mnt/md0/backup/nginx-logs --local-to-remote
+
+> hkd files rsync /var/log/nginx/access.log backup@192.168.0.2:/mnt/md0/backup/nginx-logs --local-to-remote --password-file ~/password.txt
+
+> SSHPASS=1234567 hkd files rsync /var/log/nginx/access.log backup-server:/mnt/md0/backup/nginx-logs --local-to-remote --passphrase
+
+Notes:
+- This use rsync
+- When either source or destination is remote machine:
+  - Either environment variable RSYNC_PASSWORD or ENV_SSHPASS or flag --password-file is required (priority flag)
+  - Environment variables RSYNC_PASSWORD and ENV_SSHPASS are treated similar thus either needed. If both provided, must be identical
+  - You must connect to that remote server at least one time before to perform host key verification (one time action) because the transfer will be performed via ssh.
 
 #### Perform database backup:
 > hkd db backup --help
@@ -22,5 +38,8 @@ Notes:
 - Current only support PostgreSQL
 - Either environment variable PGPASSWORD or flag --password-file is required (priority flag)
 - Rely on pg_dump command to perform backup action for PostgreSQL, it actually set environment variable PGPASSWORD and run the following command: pg_dump --host=(host) --port=(port) --schema=(schema) -Fc --username=(username) --file=(output file) (dbname)
+
+#### Checking tools used by house-keeper
+> hkd verify-tools
 
 ###### This project uses Go Application Template v4.3 (by Escan)

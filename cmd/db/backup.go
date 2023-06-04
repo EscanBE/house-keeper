@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -55,18 +56,7 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 		panic("output file name must be file name alone, can not contains directory part")
 	}
 
-	workingDir, _ := cmd.Flags().GetString(constants.FLAG_WORKING_DIR)
-	workingDir = strings.TrimSpace(workingDir)
-	if len(workingDir) < 1 {
-		panic(fmt.Errorf("empty working directory"))
-	}
-	workingDirInfo, err := os.Stat(workingDir)
-	if os.IsNotExist(err) {
-		panic(fmt.Errorf("specified working directory does not exists: %s", workingDir))
-	}
-	if !workingDirInfo.IsDir() {
-		panic(fmt.Errorf("specified working directory is not a directory"))
-	}
+	workingDir := utils.ReadFlagWorkingDir(cmd)
 
 	outputFilePath, err := filepath.Abs(path.Join(workingDir, outputFileName))
 	if err != nil {
@@ -125,7 +115,7 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 		panic(fmt.Errorf("at this moment, only PostgreSQL db is supported"))
 	}
 
-	var envVar []string
+	var envVars []string
 
 	passwordFile, _ := cmd.Flags().GetString(constants.FLAG_PASSWORD_FILE)
 	if len(passwordFile) < 1 {
@@ -133,11 +123,11 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 			panic(fmt.Errorf("missing password for user %s, either environment variable %s or flag --%s is required", userName, constants.ENV_PG_PASSWORD, constants.FLAG_PASSWORD_FILE))
 		}
 
-		envVar = os.Environ()
+		envVars = os.Environ()
 	} else {
-		_, err = os.Stat(passwordFile)
+		fip, err := os.Stat(passwordFile)
 		if os.IsNotExist(err) {
-			panic(fmt.Errorf("password file does not exists %s", passwordFile))
+			panic(fmt.Errorf("supplied password file does not exists %s", passwordFile))
 		}
 
 		bz, err := os.ReadFile(passwordFile)
@@ -145,36 +135,43 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 			panic(errors.Wrap(err, fmt.Sprintf("failed to read password file %s", passwordFile)))
 		}
 
-		pgPassword := strings.TrimSpace(string(bz))
-		if len(pgPassword) < 1 {
-			panic(fmt.Errorf("password file is empty: %s", userName))
+		if fip.Mode().Perm() != constants.FILE_PERMISSION_400 &&
+			fip.Mode().Perm() != constants.FILE_PERMISSION_600 &&
+			fip.Mode().Perm() != constants.FILE_PERMISSION_700 {
+			//goland:noinspection GoBoolExpressions
+			panic(fmt.Errorf("incorrect permission of password file, must be %s or %s or %s", constants.FILE_PERMISSION_400_STR, constants.FILE_PERMISSION_600_STR, constants.FILE_PERMISSION_700_STR))
 		}
 
-		envVar = append(envVar, fmt.Sprintf("%s=%s", constants.ENV_PG_PASSWORD, pgPassword))
+		pgPassword := strings.TrimSpace(string(bz))
+		if len(pgPassword) < 1 {
+			panic(fmt.Errorf("password file is empty: %s", passwordFile))
+		}
+
+		envVars = append(envVars, fmt.Sprintf("%s=%s", constants.ENV_PG_PASSWORD, pgPassword))
 	}
 
-	args := make([]string, 0)
+	dumpArgs := make([]string, 0)
 	if len(host) > 0 {
-		args = append(args, fmt.Sprintf("--host=%s", host))
+		dumpArgs = append(dumpArgs, fmt.Sprintf("--host=%s", host))
 	}
 	if port > 0 {
-		args = append(args, fmt.Sprintf("--port=%d", port))
+		dumpArgs = append(dumpArgs, fmt.Sprintf("--port=%d", port))
 	}
 	if len(schema) > 0 {
-		args = append(args, fmt.Sprintf("--schema=%s", schema))
+		dumpArgs = append(dumpArgs, fmt.Sprintf("--schema=%s", schema))
 	}
-	args = append(args, "-Fc")
+	dumpArgs = append(dumpArgs, "-Fc")
 	if len(userName) > 0 {
-		args = append(args, fmt.Sprintf("--username=%s", userName))
+		dumpArgs = append(dumpArgs, fmt.Sprintf("--username=%s", userName))
 	}
-	args = append(args, fmt.Sprintf("--file=%s", outputFilePath))
-	args = append(args, dbName)
+	dumpArgs = append(dumpArgs, fmt.Sprintf("--file=%s", outputFilePath))
+	dumpArgs = append(dumpArgs, dbName)
 
 	fmt.Println("Output file:", outputFilePath)
 	fmt.Println("Begin dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
 
-	excCmd := exec.Command(toolName, args...)
-	excCmd.Env = envVar
+	excCmd := exec.Command(toolName, dumpArgs...)
+	excCmd.Env = envVars
 	stdout, err := excCmd.Output()
 	if err != nil {
 		fmt.Println("Failed to dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))

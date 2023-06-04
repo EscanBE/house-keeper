@@ -2,9 +2,9 @@ package db
 
 import (
 	"fmt"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 const (
@@ -22,16 +22,7 @@ func Commands() *cobra.Command {
 		BackupCommands(),
 	)
 
-	curDir, err := os.Getwd()
-	if err != nil {
-		panic("failed to get current directory")
-	}
-
-	cmd.PersistentFlags().String(
-		constants.FLAG_WORKING_DIR,
-		curDir,
-		"the working directory",
-	)
+	utils.AddFlagWorkingDir(cmd)
 
 	cmd.PersistentFlags().String(
 		constants.FLAG_TYPE,

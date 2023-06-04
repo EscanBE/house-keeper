@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"github.com/EscanBE/go-ienumerable/goe"
 	libutils "github.com/EscanBE/go-lib/utils"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -26,6 +27,8 @@ func ListingCommands() *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		Run:   listFiles,
 	}
+	
+	utils.AddFlagWorkingDir(cmd)
 
 	cmd.PersistentFlags().Bool(
 		constants.FLAG_SILENT,
@@ -91,21 +94,7 @@ func listFiles(cmd *cobra.Command, _ []string) {
 
 	containsString, _ := cmd.Flags().GetStringArray(constants.FLAG_CONTAINS)
 
-	workingDir, _ := cmd.Flags().GetString(constants.FLAG_WORKING_DIR)
-	workingDir = strings.TrimSpace(workingDir)
-
-	if len(workingDir) < 1 {
-		panic(fmt.Errorf("empty working directory"))
-	}
-
-	workingDirInfo, err := os.Stat(workingDir)
-	if os.IsNotExist(err) {
-		panic(fmt.Errorf("specified working directory does not exists: %s", workingDir))
-	}
-
-	if !workingDirInfo.IsDir() {
-		panic(fmt.Errorf("specified working directory is not a directory"))
-	}
+	workingDir := utils.ReadFlagWorkingDir(cmd)
 
 	files := goe.NewIEnumerable[string](listFilesWithinDir(workingDir)...)
 
@@ -156,7 +145,7 @@ func listFiles(cmd *cobra.Command, _ []string) {
 
 	if deleteResultFiles {
 		for _, file := range files.ToArray() {
-			err = os.RemoveAll(file)
+			err := os.RemoveAll(file)
 			if err != nil {
 				panic(errors.Wrap(err, "failed to delete file"))
 			}

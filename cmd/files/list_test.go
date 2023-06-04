@@ -9,6 +9,7 @@ import (
 )
 
 func Test_listFilesWithinDir(t *testing.T) {
+	//goland:noinspection SpellCheckingInspection
 	tests := []struct {
 		dir  string
 		want []string
