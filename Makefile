@@ -1,14 +1,11 @@
 VERSION := $(shell echo $(shell git describe --tags || git branch --show-current) | sed 's/^v//')
-COMMIT  := $(shell git log -1 --format='%H')
-BUILD_DATE	:= $(shell date '+%Y-%m-%d')
 
 ###############################################################################
 ###                                Build flags                              ###
 ###############################################################################
 
 LD_FLAGS = -X github.com/EscanBE/house-keeper/constants.VERSION=$(VERSION) \
-            -X github.com/EscanBE/house-keeper/constants.COMMIT_HASH=$(COMMIT) \
-            -X github.com/EscanBE/house-keeper/constants.BUILD_DATE=$(BUILD_DATE)
+            -X github.com/EscanBE/house-keeper/constants.BUILD_FROM_SOURCE=yes
 
 BUILD_FLAGS := -ldflags '$(LD_FLAGS)'
 
