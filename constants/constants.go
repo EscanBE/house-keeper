@@ -35,7 +35,15 @@ const (
 	FLAG_SCHEMA        = "schema"
 	FLAG_OUTPUT_FILE   = "output-file"
 	FLAG_PASSWORD_FILE = "password-file"
+	FLAG_NO_PASSWORD   = "no-password"
 	FLAG_TOOL_FILE     = "tool-file"
+	FLAG_TOOL_OPTIONS  = "tool-options"
+
+	FLAG_REMOTE_TO_LOCAL = "remote-to-local"
+	FLAG_LOCAL_TO_REMOTE = "local-to-remote"
+	FLAG_LOCAL_TO_LOCAL  = "local-to-local"
+
+	FLAG_SSHPASS_PASSPHRASE = "passphrase"
 )
 
 //goland:noinspection GoSnakeCaseUsage
@@ -52,5 +60,7 @@ const (
 
 //goland:noinspection GoSnakeCaseUsage
 const (
-	ENV_PG_PASSWORD = "PGPASSWORD"
+	ENV_PG_PASSWORD    = "PGPASSWORD"
+	ENV_RSYNC_PASSWORD = "RSYNC_PASSWORD"
+	ENV_SSHPASS        = "SSHPASS"
 )

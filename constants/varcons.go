@@ -4,7 +4,7 @@ package constants
 
 //goland:noinspection GoSnakeCaseUsage
 var (
-	VERSION     = "v0.3.0-direct-install"
+	VERSION     = "v0.4.0-direct-install"
 	COMMIT_HASH = "not available"
 	BUILD_DATE  = "not available"
 )

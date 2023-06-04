@@ -27,6 +27,8 @@ func ListingCommands() *cobra.Command {
 		Args:  cobra.ExactArgs(0),
 		Run:   listFiles,
 	}
+	
+	utils.AddFlagWorkingDir(cmd)
 
 	cmd.PersistentFlags().Bool(
 		constants.FLAG_SILENT,

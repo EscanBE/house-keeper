@@ -115,7 +115,7 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 		panic(fmt.Errorf("at this moment, only PostgreSQL db is supported"))
 	}
 
-	var envVar []string
+	var envVars []string
 
 	passwordFile, _ := cmd.Flags().GetString(constants.FLAG_PASSWORD_FILE)
 	if len(passwordFile) < 1 {
@@ -123,7 +123,7 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 			panic(fmt.Errorf("missing password for user %s, either environment variable %s or flag --%s is required", userName, constants.ENV_PG_PASSWORD, constants.FLAG_PASSWORD_FILE))
 		}
 
-		envVar = os.Environ()
+		envVars = os.Environ()
 	} else {
 		fip, err := os.Stat(passwordFile)
 		if os.IsNotExist(err) {
@@ -144,34 +144,34 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 
 		pgPassword := strings.TrimSpace(string(bz))
 		if len(pgPassword) < 1 {
-			panic(fmt.Errorf("password file is empty: %s", userName))
+			panic(fmt.Errorf("password file is empty: %s", passwordFile))
 		}
 
-		envVar = append(envVar, fmt.Sprintf("%s=%s", constants.ENV_PG_PASSWORD, pgPassword))
+		envVars = append(envVars, fmt.Sprintf("%s=%s", constants.ENV_PG_PASSWORD, pgPassword))
 	}
 
-	args := make([]string, 0)
+	dumpArgs := make([]string, 0)
 	if len(host) > 0 {
-		args = append(args, fmt.Sprintf("--host=%s", host))
+		dumpArgs = append(dumpArgs, fmt.Sprintf("--host=%s", host))
 	}
 	if port > 0 {
-		args = append(args, fmt.Sprintf("--port=%d", port))
+		dumpArgs = append(dumpArgs, fmt.Sprintf("--port=%d", port))
 	}
 	if len(schema) > 0 {
-		args = append(args, fmt.Sprintf("--schema=%s", schema))
+		dumpArgs = append(dumpArgs, fmt.Sprintf("--schema=%s", schema))
 	}
-	args = append(args, "-Fc")
+	dumpArgs = append(dumpArgs, "-Fc")
 	if len(userName) > 0 {
-		args = append(args, fmt.Sprintf("--username=%s", userName))
+		dumpArgs = append(dumpArgs, fmt.Sprintf("--username=%s", userName))
 	}
-	args = append(args, fmt.Sprintf("--file=%s", outputFilePath))
-	args = append(args, dbName)
+	dumpArgs = append(dumpArgs, fmt.Sprintf("--file=%s", outputFilePath))
+	dumpArgs = append(dumpArgs, dbName)
 
 	fmt.Println("Output file:", outputFilePath)
 	fmt.Println("Begin dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
 
-	excCmd := exec.Command(toolName, args...)
-	excCmd.Env = envVar
+	excCmd := exec.Command(toolName, dumpArgs...)
+	excCmd.Env = envVars
 	stdout, err := excCmd.Output()
 	if err != nil {
 		fmt.Println("Failed to dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))

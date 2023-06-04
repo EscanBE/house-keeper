@@ -1,7 +1,6 @@
 package files
 
 import (
-	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/spf13/cobra"
 )
 
@@ -14,9 +13,8 @@ func Commands() *cobra.Command {
 
 	cmd.AddCommand(
 		ListingCommands(),
+		RsyncCommands(),
 	)
-
-	utils.AddFlagWorkingDir(cmd)
 
 	return cmd
 }
