@@ -8,27 +8,37 @@ import (
 
 // verifyToolsCmd represents the verify-tools command, it checks required tools exists
 var verifyToolsCmd = &cobra.Command{
-	Use:   "verify-tools",
-	Short: "Checks required tools exists",
+	Use:     "verify-tools",
+	Short:   "Checks required tools exists",
+	Aliases: []string{"verify"},
 	Run: func(cmd *cobra.Command, args []string) {
 		var anyError bool
 
-		cmdApp := exec.Command("pg_dump", "--help")
-		if err := cmdApp.Run(); err != nil {
+		cmdAppPgDump := exec.Command("pg_dump", "--help")
+		if err := cmdAppPgDump.Run(); err != nil {
 			fmt.Println("pg_dump might not exists", err)
 			anyError = true
 		}
 
-		cmdApp = exec.Command("rsync", "--help")
-		if err := cmdApp.Run(); err != nil {
+		cmdAppRsync := exec.Command("rsync", "--help")
+		if err := cmdAppRsync.Run(); err != nil {
 			fmt.Println("rsync might not exists", err)
 			anyError = true
 		}
 
-		cmdApp = exec.Command("sshpass", "-V")
-		if err := cmdApp.Run(); err != nil {
+		cmdAppSshPass := exec.Command("sshpass", "-V")
+		if err := cmdAppSshPass.Run(); err != nil {
 			fmt.Println("sshpass might not exists", err)
 			anyError = true
+		}
+
+		cmdAppSha1Sum := exec.Command("sha1sum", "--version")
+		if err := cmdAppSha1Sum.Run(); err != nil {
+			cmdAppShaSum := exec.Command("shasum", "--version")
+			if err := cmdAppShaSum.Run(); err != nil {
+				fmt.Println("both application shasum and sha1sum might not exists", err)
+				anyError = true
+			}
 		}
 
 		if !anyError {

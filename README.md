@@ -1,6 +1,6 @@
 ## House Keeper
 #### A tool to manage Escan
-> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.4.0
+> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.5.0
 
 ### Commands:
 
@@ -26,6 +26,11 @@ Notes:
   - Either environment variable RSYNC_PASSWORD or ENV_SSHPASS or flag --password-file is required (priority flag)
   - Environment variables RSYNC_PASSWORD and ENV_SSHPASS are treated similar thus either needed. If both provided, must be identical
   - You must connect to that remote server at least one time before to perform host key verification (one time action) because the transfer will be performed via ssh.
+
+#### File checksum:
+> hkd files checksum --help
+
+> hkd files checksum /tmp/test.txt
 
 #### Perform database backup:
 > hkd db backup --help
