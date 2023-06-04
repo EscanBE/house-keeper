@@ -1,19 +1,8 @@
 package utils
 
 import (
-	libutils "github.com/EscanBE/go-lib/utils"
-	"github.com/EscanBE/house-keeper/constants"
-	"os"
 	"os/exec"
-	"path"
 )
-
-// GetDefaultHomeDirectory returns default home directory, typically `~/.binaryName`
-func GetDefaultHomeDirectory() string {
-	home, err := os.UserHomeDir()
-	libutils.ExitIfErr(err, "failed to use home directory")
-	return path.Join(home, constants.DEFAULT_HOME)
-}
 
 func HasToolSshPass() bool {
 	cmdApp := exec.Command("sshpass", "-V")

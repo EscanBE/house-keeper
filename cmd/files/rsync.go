@@ -205,6 +205,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 
 			var cmdArgs []string
 			if sshPassPhrase {
+				//goland:noinspection SpellCheckingInspection
 				cmdArgs = []string{"-P", "assphrase", "-f", passwordFile}
 			} else {
 				cmdArgs = []string{"-f", passwordFile}
@@ -249,6 +250,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 
 		var cmdArgs []string
 		if sshPassPhrase {
+			//goland:noinspection SpellCheckingInspection
 			cmdArgs = []string{"-P", "assphrase", "-e", toolName}
 		} else {
 			cmdArgs = []string{"-e", toolName}
@@ -288,15 +290,15 @@ func run(toolName string, args []string, additionalEnvVars ...string) {
 	wg.Add(1)
 	go func() {
 		for {
-			stdo := rsyncStdOutScanner.Scan()
-			stde := rsyncStdErrScanner.Scan()
-			if stdo {
+			oScan := rsyncStdOutScanner.Scan()
+			eScan := rsyncStdErrScanner.Scan()
+			if oScan {
 				fmt.Println("INF:", rsyncStdOutScanner.Text())
 			}
-			if stde {
+			if eScan {
 				fmt.Println("ERR:", rsyncStdErrScanner.Text())
 			}
-			if !stdo && !stde {
+			if !oScan && !eScan {
 				break
 			}
 		}
