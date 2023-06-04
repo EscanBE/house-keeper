@@ -135,14 +135,21 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 
 		envVar = os.Environ()
 	} else {
-		_, err = os.Stat(passwordFile)
+		fip, err := os.Stat(passwordFile)
 		if os.IsNotExist(err) {
-			panic(fmt.Errorf("password file does not exists %s", passwordFile))
+			panic(fmt.Errorf("supplied password file does not exists %s", passwordFile))
 		}
 
 		bz, err := os.ReadFile(passwordFile)
 		if err != nil {
 			panic(errors.Wrap(err, fmt.Sprintf("failed to read password file %s", passwordFile)))
+		}
+
+		if fip.Mode().Perm() != constants.FILE_PERMISSION_400 &&
+			fip.Mode().Perm() != constants.FILE_PERMISSION_600 &&
+			fip.Mode().Perm() != constants.FILE_PERMISSION_700 {
+			//goland:noinspection GoBoolExpressions
+			panic(fmt.Errorf("incorrect permission of password file, must be %s or %s or %s", constants.FILE_PERMISSION_400_STR, constants.FILE_PERMISSION_600_STR, constants.FILE_PERMISSION_700_STR))
 		}
 
 		pgPassword := strings.TrimSpace(string(bz))

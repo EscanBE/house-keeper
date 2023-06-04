@@ -43,13 +43,9 @@ func LoadConfig(homeDir string) (*ApplicationConfig, error) {
 		return nil, err
 	}
 
-	if fileStats.Mode().Perm() != constants.FILE_PERMISSION && fileStats.Mode().Perm() != 0o700 {
+	if fileStats.Mode().Perm() != constants.FILE_PERMISSION_600 && fileStats.Mode().Perm() != constants.FILE_PERMISSION_700 {
 		//goland:noinspection GoBoolExpressions
-		if constants.FILE_PERMISSION == 0o700 {
-			panic(fmt.Errorf("incorrect permission of %s, must be %s", constants.DEFAULT_CONFIG_FILE_NAME, constants.FILE_PERMISSION_STR))
-		} else {
-			panic(fmt.Errorf("incorrect permission of %s, must be %s or 700", constants.DEFAULT_CONFIG_FILE_NAME, constants.FILE_PERMISSION_STR))
-		}
+		panic(fmt.Errorf("incorrect permission of %s, must be %s or %s", constants.DEFAULT_CONFIG_FILE_NAME, constants.FILE_PERMISSION_600_STR, constants.FILE_PERMISSION_700_STR))
 	}
 
 	viper.SetConfigType(constants.CONFIG_TYPE)
