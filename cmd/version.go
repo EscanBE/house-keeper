@@ -12,9 +12,10 @@ var versionCmd = &cobra.Command{
 	Aliases: []string{"v"},
 	Short:   "Show binary version",
 	Run: func(cmd *cobra.Command, args []string) {
-		fmt.Printf(constants.VERSION)
 		if len(constants.BUILD_FROM_SOURCE) > 0 {
-			fmt.Println(" (build from source)")
+			fmt.Println(constants.VERSION, "(build from source)")
+		} else {
+			fmt.Println(constants.VERSION)
 		}
 	},
 }

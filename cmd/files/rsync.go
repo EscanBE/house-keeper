@@ -273,8 +273,6 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 func run(toolName string, args []string, additionalEnvVars ...string) {
 	rsyncCmd := exec.Command(toolName, args...)
 
-	//fmt.Println("command:", toolName, strings.Join(args, " "))
-
 	rsyncCmd.Env = append(additionalEnvVars, additionalEnvVars...)
 	// stdin, _ := rsyncCmd.StdinPipe()
 	stdout, _ := rsyncCmd.StdoutPipe()
