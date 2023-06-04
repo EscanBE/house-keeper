@@ -1,9 +1,8 @@
 package files
 
 import (
-	"github.com/EscanBE/house-keeper/constants"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/spf13/cobra"
-	"os"
 )
 
 // Commands registers a sub-tree of commands
@@ -17,16 +16,7 @@ func Commands() *cobra.Command {
 		ListingCommands(),
 	)
 
-	curDir, err := os.Getwd()
-	if err != nil {
-		panic("failed to get current directory")
-	}
-
-	cmd.PersistentFlags().String(
-		constants.FLAG_WORKING_DIR,
-		curDir,
-		"the working directory",
-	)
+	utils.AddFlagWorkingDir(cmd)
 
 	return cmd
 }

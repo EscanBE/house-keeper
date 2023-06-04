@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
@@ -55,18 +56,7 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 		panic("output file name must be file name alone, can not contains directory part")
 	}
 
-	workingDir, _ := cmd.Flags().GetString(constants.FLAG_WORKING_DIR)
-	workingDir = strings.TrimSpace(workingDir)
-	if len(workingDir) < 1 {
-		panic(fmt.Errorf("empty working directory"))
-	}
-	workingDirInfo, err := os.Stat(workingDir)
-	if os.IsNotExist(err) {
-		panic(fmt.Errorf("specified working directory does not exists: %s", workingDir))
-	}
-	if !workingDirInfo.IsDir() {
-		panic(fmt.Errorf("specified working directory is not a directory"))
-	}
+	workingDir := utils.ReadFlagWorkingDir(cmd)
 
 	outputFilePath, err := filepath.Abs(path.Join(workingDir, outputFileName))
 	if err != nil {
