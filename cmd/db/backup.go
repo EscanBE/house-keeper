@@ -38,7 +38,7 @@ func BackupCommands() *cobra.Command {
 	cmd.PersistentFlags().String(
 		constants.FLAG_TOOL_FILE,
 		"",
-		"absolute file path of the tool will be used to dump database, eg: /usr/bin/pg_dump for PostgreSQL",
+		"custom file path (absolute) for the backup utility (eg pg_dump of PostgreSQL)",
 	)
 
 	return cmd

@@ -63,7 +63,7 @@ Note:
 	cmd.PersistentFlags().String(
 		constants.FLAG_TOOL_FILE,
 		"",
-		"custom absolute file path of the tool app, eg: /usr/bin/rsync (default \"rsync\")",
+		"custom rsync file path (absolute)",
 	)
 
 	cmd.PersistentFlags().String(
