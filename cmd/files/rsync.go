@@ -281,7 +281,7 @@ func run(toolName string, args []string, additionalEnvVars ...string) {
 	rsyncStdErrScanner := bufio.NewScanner(stderr)
 	err := rsyncCmd.Start()
 	if err != nil {
-		fmt.Println("problem when starting rsync", err)
+		fmt.Println("problem when starting", toolName, err)
 	}
 
 	var wg sync.WaitGroup

@@ -7,7 +7,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
-	"os/exec"
 	"path"
 	"path/filepath"
 	"strings"
@@ -39,6 +38,12 @@ func BackupCommands() *cobra.Command {
 		constants.FLAG_TOOL_FILE,
 		"",
 		"custom file path (absolute) for the backup utility (eg pg_dump of PostgreSQL)",
+	)
+
+	cmd.PersistentFlags().String(
+		constants.FLAG_SCHEMA,
+		"public",
+		"specify schema to backup",
 	)
 
 	return cmd
@@ -106,15 +111,6 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 		toolName = customToolName
 	}
 
-	dbType, _ := cmd.Flags().GetString(constants.FLAG_TYPE)
-	if len(dbType) < 1 {
-		panic(fmt.Errorf("missing value for mandatory flag --%s", constants.FLAG_TYPE))
-	}
-
-	if dbType != dbTypePostgres {
-		panic(fmt.Errorf("at this moment, only PostgreSQL db is supported"))
-	}
-
 	var envVars []string
 
 	passwordFile, _ := cmd.Flags().GetString(constants.FLAG_PASSWORD_FILE)
@@ -168,19 +164,14 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 	dumpArgs = append(dumpArgs, dbName)
 
 	fmt.Println("Output file:", outputFilePath)
-	fmt.Println("Begin dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
+	fmt.Println("Dump arguments:", strings.Join(dumpArgs, " "))
+	fmt.Println("Begin backup", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
 
-	excCmd := exec.Command(toolName, dumpArgs...)
-	excCmd.Env = envVars
-	stdout, err := excCmd.Output()
-	if err != nil {
-		fmt.Println("Failed to dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
-		fmt.Println(err)
-		os.Exit(1)
+	exitCode := utils.LaunchApp(toolName, dumpArgs, envVars)
+	if exitCode == 0 {
+		fmt.Println("Finished backup", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
+	} else {
+		fmt.Println("Failed to backup", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
 	}
-
-	fmt.Println("Finished dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
-	if len(stdout) > 0 {
-		fmt.Println(stdout)
-	}
+	os.Exit(exitCode)
 }

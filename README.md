@@ -44,6 +44,17 @@ Notes:
 - Either environment variable PGPASSWORD or flag --password-file is required (priority flag)
 - Rely on pg_dump command to perform backup action for PostgreSQL, it actually set environment variable PGPASSWORD and run the following command: pg_dump --host=(host) --port=(port) --schema=(schema) -Fc --username=(username) --file=(output file) (dbname)
 
+#### Perform PostgreSQL DB restore:
+> hkd db pg_restore --help
+
+> PGPASSWORD=1234567 hkd db pg_restore db-backup-2023-01-02.dump --superuser postgres --dbname example
+
+> hkd db pg_restore db-backup-2023-01-02.dump --host localhost --port 5432 --dbname example --username postgres --superuser postgres --password-file ~/password.txt
+
+Notes:
+- Either environment variable PGPASSWORD or flag --password-file is required (priority flag)
+- Rely on pg_restore command to perform backup action for PostgreSQL, it actually set environment variable PGPASSWORD and then call pg_restore
+
 #### Checking tools used by house-keeper
 > hkd verify-tools
 
