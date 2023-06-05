@@ -13,13 +13,13 @@ import (
 	"time"
 )
 
-// BackupCommands registers a sub-tree of commands
-func BackupCommands() *cobra.Command {
+// PgDumpCommands registers a sub-tree of commands
+func PgDumpCommands() *cobra.Command {
 	cmd := &cobra.Command{
-		Use:   "backup",
-		Short: fmt.Sprintf("** Deprecated command, use %s db pg_dump instead **", constants.BINARY_NAME),
+		Use:   "pg_dump",
+		Short: "Backup DB (PostgreSQL)",
 		Args:  cobra.ExactArgs(0),
-		Run:   backupDatabase,
+		Run:   backupPgDatabase,
 	}
 
 	cmd.PersistentFlags().String(
@@ -37,7 +37,7 @@ func BackupCommands() *cobra.Command {
 	cmd.PersistentFlags().String(
 		constants.FLAG_TOOL_FILE,
 		"",
-		"custom file path (absolute) for the backup utility (eg pg_dump of PostgreSQL)",
+		"custom file path for the pg_dump utility",
 	)
 
 	cmd.PersistentFlags().String(
@@ -49,9 +49,7 @@ func BackupCommands() *cobra.Command {
 	return cmd
 }
 
-func backupDatabase(cmd *cobra.Command, _ []string) {
-	fmt.Printf("** WARNING ** this is a deprecated function, use [%s db pg_dump ...] instead!\n", constants.BINARY_NAME)
-
+func backupPgDatabase(cmd *cobra.Command, _ []string) {
 	outputFileName, _ := cmd.Flags().GetString(constants.FLAG_OUTPUT_FILE)
 	outputFileName = strings.TrimSpace(outputFileName)
 	if len(outputFileName) < 1 {
@@ -107,7 +105,7 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 	if len(customToolName) > 0 {
 		_, err = os.Stat(customToolName)
 		if os.IsNotExist(err) {
-			panic(fmt.Errorf("custom tool file does not exists: %s", customToolName))
+			panic(fmt.Errorf("custom pg_dump file path does not exists: %s", customToolName))
 		}
 
 		toolName = customToolName
@@ -166,14 +164,14 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 	dumpArgs = append(dumpArgs, dbName)
 
 	fmt.Println("Output file:", outputFilePath)
-	fmt.Println("Dump arguments:", strings.Join(dumpArgs, " "))
-	fmt.Println("Begin backup", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
+	fmt.Println("Dump arguments:\n", toolName, strings.Join(dumpArgs, " "))
+	fmt.Println("Begin dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
 
 	exitCode := utils.LaunchApp(toolName, dumpArgs, envVars)
 	if exitCode == 0 {
-		fmt.Println("Finished backup", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
+		fmt.Println("Finished dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
 	} else {
-		fmt.Println("Failed to backup", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
+		fmt.Println("Failed to dump", outputFileName, "at", time.Now().Format("2006-Jan-02 15:04:05"))
 	}
 	os.Exit(exitCode)
 }

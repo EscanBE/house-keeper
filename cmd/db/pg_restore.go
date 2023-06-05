@@ -17,7 +17,7 @@ func PgRestoreCommands() *cobra.Command {
 		Use:   "pg_restore [file_name]",
 		Short: "Restore DB using backup file (PostgreSQL)",
 		Args:  cobra.ExactArgs(1),
-		Run:   restoreDatabase,
+		Run:   restorePgDatabase,
 	}
 
 	cmd.PersistentFlags().String(
@@ -53,7 +53,7 @@ func PgRestoreCommands() *cobra.Command {
 	return cmd
 }
 
-func restoreDatabase(cmd *cobra.Command, args []string) {
+func restorePgDatabase(cmd *cobra.Command, args []string) {
 	inputFilePath := args[0]
 	inputFilePath = strings.TrimSpace(inputFilePath)
 	if len(inputFilePath) < 1 {
@@ -116,7 +116,7 @@ func restoreDatabase(cmd *cobra.Command, args []string) {
 	if len(customToolName) > 0 {
 		_, err = os.Stat(customToolName)
 		if os.IsNotExist(err) {
-			panic(fmt.Errorf("custom tool file does not exists: %s", customToolName))
+			panic(fmt.Errorf("custom pg_restore file path does not exists: %s", customToolName))
 		}
 
 		toolName = customToolName
@@ -184,7 +184,7 @@ func restoreDatabase(cmd *cobra.Command, args []string) {
 	restoreArgs = append(restoreArgs, inputFilePath)
 
 	fmt.Println("Input file:", inputFilePath)
-	fmt.Println("Restore arguments:", strings.Join(restoreArgs, " "))
+	fmt.Println("Restore arguments:\n", toolName, strings.Join(restoreArgs, " "))
 	fmt.Println("Begin restore", inputFilePath, "at", time.Now().Format("2006-Jan-02 15:04:05"))
 
 	exitCode := utils.LaunchApp(toolName, restoreArgs, envVars)
