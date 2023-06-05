@@ -1,16 +1,13 @@
 package files
 
 import (
-	"bufio"
 	"fmt"
 	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
-	"os/exec"
 	"strings"
-	"sync"
 )
 
 var defaultRsyncOptions = []string{"--human-readable", "--compress", "--progress", "--stats"}
@@ -165,13 +162,13 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	}
 
 	if !isSrcRemote && !isDestRemote {
-		run(toolName, append(options, src, dest))
+		launchApp(toolName, append(options, src, dest))
 		return
 	}
 
 	noPassword, _ := cmd.Flags().GetBool(constants.FLAG_NO_PASSWORD)
 	if noPassword {
-		run(toolName, append(options, "-e", "ssh", src, dest))
+		launchApp(toolName, append(options, "-e", "ssh", src, dest))
 		return
 	}
 
@@ -214,13 +211,13 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 			cmdArgs = append(cmdArgs, options...)
 			cmdArgs = append(cmdArgs, "-e", "ssh", src, dest)
 
-			run("sshpass", cmdArgs)
+			launchApp("sshpass", cmdArgs)
 			return
 		}
 
 		fmt.Println("Using environment variable", constants.ENV_RSYNC_PASSWORD, "to passing password from password file to rsync")
 		fmt.Println("**WARNING: if remote machine does not have rsync service running, password prompt still appears")
-		run(toolName, append(options, "-e", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
+		launchApp(toolName, append(options, "-e", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
 		return
 	}
 
@@ -258,7 +255,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 		cmdArgs = append(cmdArgs, options...)
 		cmdArgs = append(cmdArgs, "-e", "ssh", src, dest)
 
-		run("sshpass", cmdArgs, fmt.Sprintf("%s=%s", constants.ENV_SSHPASS, password))
+		launchApp("sshpass", cmdArgs, fmt.Sprintf("%s=%s", constants.ENV_SSHPASS, password))
 		return
 	}
 
@@ -267,45 +264,10 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	}
 	fmt.Println("Using environment variable", constants.ENV_RSYNC_PASSWORD, "to passing password to rsync")
 	fmt.Println("**WARNING: if remote machine does not have rsync service running, password prompt still appears")
-	run(toolName, append(options, "-e", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
+	launchApp(toolName, append(options, "-e", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
 }
 
-func run(toolName string, args []string, additionalEnvVars ...string) {
-	rsyncCmd := exec.Command(toolName, args...)
-
-	rsyncCmd.Env = append(additionalEnvVars, additionalEnvVars...)
-	// stdin, _ := rsyncCmd.StdinPipe()
-	stdout, _ := rsyncCmd.StdoutPipe()
-	stderr, _ := rsyncCmd.StderrPipe()
-	rsyncStdOutScanner := bufio.NewScanner(stdout)
-	rsyncStdErrScanner := bufio.NewScanner(stderr)
-	err := rsyncCmd.Start()
-	if err != nil {
-		fmt.Println("problem when starting", toolName, err)
-	}
-
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		for {
-			oScan := rsyncStdOutScanner.Scan()
-			eScan := rsyncStdErrScanner.Scan()
-			if oScan {
-				fmt.Println("INF:", rsyncStdOutScanner.Text())
-			}
-			if eScan {
-				fmt.Println("ERR:", rsyncStdErrScanner.Text())
-			}
-			if !oScan && !eScan {
-				break
-			}
-		}
-		err = rsyncCmd.Wait()
-		if err != nil {
-			fmt.Println("problem when waiting process", err)
-		}
-		defer wg.Done()
-	}()
-
-	wg.Wait()
+func launchApp(toolName string, args []string, additionalEnvVars ...string) {
+	exitCode := utils.LaunchApp(toolName, args, append(os.Environ(), additionalEnvVars...))
+	os.Exit(exitCode)
 }
