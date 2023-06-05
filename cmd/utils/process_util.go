@@ -18,7 +18,7 @@ func LaunchApp(appName string, args []string, envVars []string) int {
 	rsyncStdErrScanner := bufio.NewScanner(stderr)
 	err := rsyncCmd.Start()
 	if err != nil {
-		fmt.Fprintln(os.Stderr, "problem when starting", appName, err)
+		_, _ = fmt.Fprintln(os.Stderr, "problem when starting", appName, err)
 	}
 
 	var chanEc = make(chan int, 1)
@@ -33,7 +33,7 @@ func LaunchApp(appName string, args []string, envVars []string) int {
 				fmt.Println(rsyncStdOutScanner.Text())
 			}
 			if eScan {
-				fmt.Fprintln(os.Stderr, rsyncStdErrScanner.Text())
+				_, _ = fmt.Fprintln(os.Stderr, rsyncStdErrScanner.Text())
 			}
 			if !oScan && !eScan {
 				break
@@ -41,7 +41,7 @@ func LaunchApp(appName string, args []string, envVars []string) int {
 		}
 		err = rsyncCmd.Wait()
 		if err != nil {
-			fmt.Fprintln(os.Stderr, "problem when waiting process", appName, err)
+			_, _ = fmt.Fprintln(os.Stderr, "problem when waiting process", appName, err)
 			chanEc <- 1
 		} else {
 			chanEc <- 0

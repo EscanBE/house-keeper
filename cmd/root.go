@@ -12,9 +12,6 @@ import (
 var rootCmd = &cobra.Command{
 	Use:   constants.BINARY_NAME,
 	Short: constants.APP_DESC,
-	// Uncomment the following line if your bare application
-	// has an action associated with it:
-	// Run: func(cmd *cobra.Command, args []string) { },
 }
 
 // Execute adds all child commands to the root command and sets flags appropriately.
@@ -30,12 +27,6 @@ func Execute() {
 }
 
 func init() {
-	cobra.OnInitialize(initConfig)
-
 	rootCmd.AddCommand(list.Commands())
 	rootCmd.AddCommand(db.Commands())
-}
-
-// initConfig reads in config file and ENV variables if set.
-func initConfig() {
 }
