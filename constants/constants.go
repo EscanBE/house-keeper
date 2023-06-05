@@ -25,6 +25,7 @@ const (
 	FLAG_SUPER_USER    = "superuser"
 	FLAG_SCHEMA        = "schema"
 	FLAG_OUTPUT_FILE   = "output-file"
+	FLAG_LOG_FILE      = "log-file"
 	FLAG_PASSWORD_FILE = "password-file"
 	FLAG_NO_PASSWORD   = "no-password"
 	FLAG_TOOL_FILE     = "tool-file"

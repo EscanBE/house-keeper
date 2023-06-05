@@ -2,6 +2,7 @@ package files
 
 import (
 	"fmt"
+	"github.com/EscanBE/go-ienumerable/goe"
 	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
@@ -10,7 +11,7 @@ import (
 	"strings"
 )
 
-var defaultRsyncOptions = []string{"--human-readable", "--compress", "--progress", "--stats"}
+var defaultRsyncOptions = []string{"--human-readable", "--compress", "--stats"}
 
 // RsyncCommands registers a sub-tree of commands
 func RsyncCommands() *cobra.Command {
@@ -26,7 +27,7 @@ func RsyncCommands() *cobra.Command {
 Note:
 - This is just a wrapper of rsync, you must know how to use rsync and got rsync installed in order to use this.
   Actual translated rsync command would look similar to:
-  > /usr/bin/rsync -hz --progress --stats -e ssh "server:/var/logs/*.log" "/mnt/md0/backup/logs"
+  > /usr/bin/rsync --human-readable --compress --stats -e ssh "server:/var/logs/*.log" "/mnt/md0/backup/logs"
 - When transfer from/to remote server, you must connect to that remote server at least one time before to perform host key verification (one time action) because the transfer will be performed via ssh.
 `, constants.BINARY_NAME, constants.BINARY_NAME),
 		Args: cobra.ExactArgs(2),
@@ -67,6 +68,12 @@ Note:
 		constants.FLAG_PASSWORD_FILE,
 		"",
 		"file path which store password to access remote server",
+	)
+
+	cmd.PersistentFlags().String(
+		constants.FLAG_LOG_FILE,
+		"",
+		"log what we're doing to the specified file",
 	)
 
 	cmd.PersistentFlags().Bool(
@@ -161,6 +168,17 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 		options = defaultRsyncOptions
 	}
 
+	logFile, _ := cmd.Flags().GetString(constants.FLAG_LOG_FILE)
+	if len(logFile) > 0 {
+		duplicated := goe.NewIEnumerable[string](options...).AnyBy(func(flag string) bool {
+			return strings.HasPrefix(flag, "--log-file ") || strings.HasPrefix(flag, "--log-file=")
+		})
+		if duplicated {
+			panic(fmt.Sprintf("duplicated flags --%s", constants.FLAG_LOG_FILE))
+		}
+		options = append(options, "--log-file", logFile)
+	}
+
 	if !isSrcRemote && !isDestRemote {
 		launchApp(toolName, append(options, src, dest))
 		return
@@ -168,7 +186,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 
 	noPassword, _ := cmd.Flags().GetBool(constants.FLAG_NO_PASSWORD)
 	if noPassword {
-		launchApp(toolName, append(options, "-e", "ssh", src, dest))
+		launchApp(toolName, append(options, "--rsh", "ssh", src, dest))
 		return
 	}
 
@@ -209,7 +227,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 			}
 			cmdArgs = append(cmdArgs, toolName)
 			cmdArgs = append(cmdArgs, options...)
-			cmdArgs = append(cmdArgs, "-e", "ssh", src, dest)
+			cmdArgs = append(cmdArgs, "--rsh", "ssh", src, dest)
 
 			launchApp("sshpass", cmdArgs)
 			return
@@ -217,7 +235,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 
 		fmt.Println("Using environment variable", constants.ENV_RSYNC_PASSWORD, "to passing password from password file to rsync")
 		fmt.Println("**WARNING: if remote machine does not have rsync service running, password prompt still appears")
-		launchApp(toolName, append(options, "-e", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
+		launchApp(toolName, append(options, "--rsh", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
 		return
 	}
 
@@ -253,7 +271,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 			cmdArgs = []string{"-e", toolName}
 		}
 		cmdArgs = append(cmdArgs, options...)
-		cmdArgs = append(cmdArgs, "-e", "ssh", src, dest)
+		cmdArgs = append(cmdArgs, "--rsh", "ssh", src, dest)
 
 		launchApp("sshpass", cmdArgs, fmt.Sprintf("%s=%s", constants.ENV_SSHPASS, password))
 		return
@@ -264,10 +282,17 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	}
 	fmt.Println("Using environment variable", constants.ENV_RSYNC_PASSWORD, "to passing password to rsync")
 	fmt.Println("**WARNING: if remote machine does not have rsync service running, password prompt still appears")
-	launchApp(toolName, append(options, "-e", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
+	launchApp(toolName, append(options, "--rsh", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
 }
 
 func launchApp(toolName string, args []string, additionalEnvVars ...string) {
+	fmt.Println("Rsync arguments:\n", toolName, strings.Join(args, " "))
+	fmt.Println("Begin rsync at", utils.NowStr())
 	exitCode := utils.LaunchApp(toolName, args, append(os.Environ(), additionalEnvVars...))
+	if exitCode == 0 {
+		fmt.Println("Finished rsync at", utils.NowStr())
+	} else {
+		fmt.Println("Failed rsync at", utils.NowStr())
+	}
 	os.Exit(exitCode)
 }

@@ -8,7 +8,6 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
-	"time"
 )
 
 // PgRestoreCommands registers a sub-tree of commands
@@ -185,13 +184,13 @@ func restorePgDatabase(cmd *cobra.Command, args []string) {
 
 	fmt.Println("Input file:", inputFilePath)
 	fmt.Println("Restore arguments:\n", toolName, strings.Join(restoreArgs, " "))
-	fmt.Println("Begin restore", inputFilePath, "at", time.Now().Format("2006-Jan-02 15:04:05"))
+	fmt.Println("Begin restore", inputFilePath, "at", utils.NowStr())
 
 	exitCode := utils.LaunchApp(toolName, restoreArgs, envVars)
 	if exitCode == 0 {
-		fmt.Println("Finished restore", inputFilePath, "at", time.Now().Format("2006-Jan-02 15:04:05"))
+		fmt.Println("Finished restore", inputFilePath, "at", utils.NowStr())
 	} else {
-		fmt.Println("Failed to restore", inputFilePath, "at", time.Now().Format("2006-Jan-02 15:04:05"))
+		fmt.Println("Failed to restore", inputFilePath, "at", utils.NowStr())
 	}
 	os.Exit(exitCode)
 }
