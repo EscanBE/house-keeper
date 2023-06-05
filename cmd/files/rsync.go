@@ -2,6 +2,7 @@ package files
 
 import (
 	"fmt"
+	"github.com/EscanBE/go-ienumerable/goe"
 	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
@@ -67,6 +68,12 @@ Note:
 		constants.FLAG_PASSWORD_FILE,
 		"",
 		"file path which store password to access remote server",
+	)
+
+	cmd.PersistentFlags().String(
+		constants.FLAG_LOG_FILE,
+		"",
+		"log what we're doing to the specified file",
 	)
 
 	cmd.PersistentFlags().Bool(
@@ -159,6 +166,17 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	options, _ := cmd.Flags().GetStringSlice(constants.FLAG_TOOL_OPTIONS)
 	if len(options) < 1 {
 		options = defaultRsyncOptions
+	}
+
+	logFile, _ := cmd.Flags().GetString(constants.FLAG_LOG_FILE)
+	if len(logFile) > 0 {
+		duplicated := goe.NewIEnumerable[string](options...).AnyBy(func(flag string) bool {
+			return strings.HasPrefix(flag, "--log-file ") || strings.HasPrefix(flag, "--log-file=")
+		})
+		if duplicated {
+			panic(fmt.Sprintf("duplicated flags --%s", constants.FLAG_LOG_FILE))
+		}
+		options = append(options, "--log-file", logFile)
 	}
 
 	if !isSrcRemote && !isDestRemote {
