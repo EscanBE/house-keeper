@@ -268,6 +268,13 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 }
 
 func launchApp(toolName string, args []string, additionalEnvVars ...string) {
+	fmt.Println("Rsync arguments:\n", toolName, strings.Join(args, " "))
+	fmt.Println("Begin rsync at", utils.NowStr())
 	exitCode := utils.LaunchApp(toolName, args, append(os.Environ(), additionalEnvVars...))
+	if exitCode == 0 {
+		fmt.Println("Finished rsync at", utils.NowStr())
+	} else {
+		fmt.Println("Failed rsync at", utils.NowStr())
+	}
 	os.Exit(exitCode)
 }
