@@ -10,7 +10,7 @@ import (
 	"strings"
 )
 
-var defaultRsyncOptions = []string{"--human-readable", "--compress", "--progress", "--stats"}
+var defaultRsyncOptions = []string{"--human-readable", "--compress", "--stats"}
 
 // RsyncCommands registers a sub-tree of commands
 func RsyncCommands() *cobra.Command {
@@ -26,7 +26,7 @@ func RsyncCommands() *cobra.Command {
 Note:
 - This is just a wrapper of rsync, you must know how to use rsync and got rsync installed in order to use this.
   Actual translated rsync command would look similar to:
-  > /usr/bin/rsync -hz --progress --stats --rsh ssh "server:/var/logs/*.log" "/mnt/md0/backup/logs"
+  > /usr/bin/rsync --human-readable --compress --stats -e ssh "server:/var/logs/*.log" "/mnt/md0/backup/logs"
 - When transfer from/to remote server, you must connect to that remote server at least one time before to perform host key verification (one time action) because the transfer will be performed via ssh.
 `, constants.BINARY_NAME, constants.BINARY_NAME),
 		Args: cobra.ExactArgs(2),
