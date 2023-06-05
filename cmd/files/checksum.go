@@ -26,7 +26,7 @@ func ChecksumCommands() *cobra.Command {
 	cmd.PersistentFlags().String(
 		constants.FLAG_TOOL_FILE,
 		"",
-		"absolute file path of the checksum tool",
+		"custom checksum tool's file path",
 	)
 
 	cmd.PersistentFlags().String(

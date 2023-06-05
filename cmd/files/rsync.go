@@ -63,7 +63,7 @@ Note:
 	cmd.PersistentFlags().String(
 		constants.FLAG_TOOL_FILE,
 		"",
-		"custom absolute file path of the tool app, eg: /usr/bin/rsync (default \"rsync\")",
+		"custom rsync file path (absolute)",
 	)
 
 	cmd.PersistentFlags().String(
@@ -281,7 +281,7 @@ func run(toolName string, args []string, additionalEnvVars ...string) {
 	rsyncStdErrScanner := bufio.NewScanner(stderr)
 	err := rsyncCmd.Start()
 	if err != nil {
-		fmt.Println("problem when starting rsync", err)
+		fmt.Println("problem when starting", toolName, err)
 	}
 
 	var wg sync.WaitGroup

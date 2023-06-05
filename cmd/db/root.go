@@ -1,14 +1,9 @@
 package db
 
 import (
-	"fmt"
 	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/spf13/cobra"
-)
-
-const (
-	dbTypePostgres = "postgres"
 )
 
 // Commands registers a sub-tree of commands
@@ -20,15 +15,11 @@ func Commands() *cobra.Command {
 
 	cmd.AddCommand(
 		BackupCommands(),
+		PgDumpCommands(),
+		PgRestoreCommands(),
 	)
 
 	utils.AddFlagWorkingDir(cmd)
-
-	cmd.PersistentFlags().String(
-		constants.FLAG_TYPE,
-		dbTypePostgres,
-		fmt.Sprintf("database to work with. Only valid value is %s", dbTypePostgres),
-	)
 
 	cmd.PersistentFlags().String(
 		constants.FLAG_HOST,
@@ -52,12 +43,6 @@ func Commands() *cobra.Command {
 		constants.FLAG_USER_NAME,
 		"postgres",
 		"database username",
-	)
-
-	cmd.PersistentFlags().String(
-		constants.FLAG_SCHEMA,
-		"public",
-		"database schema",
 	)
 
 	return cmd

@@ -1,6 +1,6 @@
 ## House Keeper
 #### A tool to manage Escan
-> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.5.1
+> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.6.0
 
 ### Commands:
 
@@ -32,17 +32,27 @@ Notes:
 
 > hkd files checksum /tmp/test.txt
 
-#### Perform database backup:
-> hkd db backup --help
+#### Perform PostgreSQL DB backup:
+> hkd db pg_dump --help
 
-> PGPASSWORD=1234567 hkd db backup --working-directory /mnt/md0/backup --dbname my_db_name --username my_user_name
+> PGPASSWORD=1234567 hkd db pg_dump --working-directory /mnt/md0/backup --dbname my_db_name --username my_user_name
 
-> hkd db backup --working-directory /mnt/md0/backup --output-file db-backup-2023-01-02.dump --host localhost --port 5432 --dbname postgres --username postgres --schema public --password-file ~/password.txt
+> hkd db pg_dump --working-directory /mnt/md0/backup --output-file db-2023-01-02.dump --host localhost --port 5432 --dbname postgres --username postgres --schema public --password-file ~/password.txt
 
 Notes:
-- Current only support PostgreSQL
 - Either environment variable PGPASSWORD or flag --password-file is required (priority flag)
-- Rely on pg_dump command to perform backup action for PostgreSQL, it actually set environment variable PGPASSWORD and run the following command: pg_dump --host=(host) --port=(port) --schema=(schema) -Fc --username=(username) --file=(output file) (dbname)
+- Rely on pg_dump command to perform backup action for PostgreSQL, it actually set environment variable PGPASSWORD and then call pg_dump
+
+#### Perform PostgreSQL DB restore:
+> hkd db pg_restore --help
+
+> PGPASSWORD=1234567 hkd db pg_restore db-2023-01-02.dump --superuser postgres --dbname example
+
+> hkd db pg_restore db-2023-01-02.dump --host localhost --port 5432 --dbname example --username postgres --superuser postgres --password-file ~/password.txt
+
+Notes:
+- Either environment variable PGPASSWORD or flag --password-file is required (priority flag)
+- Rely on pg_restore command to perform backup action for PostgreSQL, it actually set environment variable PGPASSWORD and then call pg_restore
 
 #### Checking tools used by house-keeper
 > hkd verify-tools

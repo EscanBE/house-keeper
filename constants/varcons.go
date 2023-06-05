@@ -4,6 +4,6 @@ package constants
 
 //goland:noinspection GoSnakeCaseUsage
 var (
-	VERSION           = "0.5.1"
+	VERSION           = "0.6.0"
 	BUILD_FROM_SOURCE = ""
 )
