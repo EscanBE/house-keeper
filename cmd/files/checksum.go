@@ -134,6 +134,13 @@ func checksumFile(cmd *cobra.Command, args []string) {
 				msg := fmt.Sprintf("skip checksum %s due to cache file %s is existing", file, checksumCacheFilePath)
 				fmt.Println(msg)
 				outputCb(msg)
+
+				bz, err := os.ReadFile(checksumCacheFilePath)
+				if err == nil && len(bz) > 0 {
+					msg := fmt.Sprintf("content was: %s", string(bz))
+					fmt.Println(msg)
+					outputCb(msg)
+				}
 				continue
 			}
 
@@ -152,7 +159,7 @@ func checksumFile(cmd *cobra.Command, args []string) {
 			outputChecksumCacheCb = nil
 		}
 
-		exitCode := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb, outputChecksumCacheCb)
+		exitCode := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb, outputChecksumCacheCb, nil)
 		if exitCode != 0 {
 			fmt.Println("failed to checksum file", file)
 
