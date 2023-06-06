@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
 )
 
@@ -33,6 +34,12 @@ func ChecksumCommands() *cobra.Command {
 		constants.FLAG_OUTPUT_FILE,
 		"",
 		"append output to file",
+	)
+
+	cmd.PersistentFlags().Bool(
+		constants.FLAG_CACHE_AND_TRUST,
+		false,
+		fmt.Sprintf("also write checksum result to a hidden cache file (.<filename>.%s-checksum) and skip checksum if file exists", constants.BINARY_NAME),
 	)
 
 	return cmd
@@ -103,16 +110,87 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		checkInputFile(file)
 	}
 
+	cacheAndTrust, _ := cmd.Flags().GetBool(constants.FLAG_CACHE_AND_TRUST)
+
 	// start checksum files one by one
 	for _, file := range files {
+		fmt.Println("start checksum file", file)
+
 		checkInputFile(file)
 
-		fmt.Println("start checksum file", file)
-		exitCode := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb)
+		checksumCacheFilePath := buildChecksumCacheFilePath(file)
+
+		var outputChecksumCacheCb func(msg string)
+
+		if cacheAndTrust {
+			_, err := os.Stat(checksumCacheFilePath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					// ok
+				} else {
+					panic(errors.Wrap(err, fmt.Sprintf("problem while checking checksum cache file %s", checksumCacheFilePath)))
+				}
+			} else {
+				msg := fmt.Sprintf("skip checksum %s due to cache file %s is existing", file, checksumCacheFilePath)
+				fmt.Println(msg)
+				outputCb(msg)
+				continue
+			}
+
+			outputCacheFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				panic(errors.Wrap(err, fmt.Sprintf("failed to create checksum cache file %s", checksumCacheFilePath)))
+			}
+			if outputCacheFile != nil {
+				_ = outputCacheFile.Close()
+			}
+
+			outputChecksumCacheCb = func(msg string) {
+				writeToChecksumCacheFile(checksumCacheFilePath, msg)
+			}
+		} else {
+			outputChecksumCacheCb = nil
+		}
+
+		exitCode := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb, outputChecksumCacheCb)
 		if exitCode != 0 {
 			fmt.Println("failed to checksum file", file)
+
+			if cacheAndTrust {
+				err := os.Remove(checksumCacheFilePath)
+				if err != nil {
+					fmt.Println("failed to remove checksum cache file", checksumCacheFilePath)
+				}
+			}
+
 			os.Exit(exitCode)
 		}
+	}
+}
+
+func writeToChecksumCacheFile(outputFilePath string, content string) {
+	if len(outputFilePath) < 1 {
+		panic("missing checksum cache file path")
+	}
+
+	if len(content) < 1 {
+		panic("missing checksum cache file content")
+	}
+
+	outputFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "failed to open checksum cache file [%s] to write content [%s]", outputFilePath, content)
+	}
+
+	defer func(outputFile *os.File) {
+		if outputFile != nil {
+			_ = outputFile.Close()
+		}
+	}(outputFile)
+
+	if _, err := outputFile.WriteString(content); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "failed to write content [%s] to checksum cache file [%s]", content, outputFilePath)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 	}
 }
 
@@ -127,7 +205,9 @@ func writeToOutputFile(outputFilePath string, content string) {
 	}
 
 	defer func(outputFile *os.File) {
-		_ = outputFile.Close()
+		if outputFile != nil {
+			_ = outputFile.Close()
+		}
 	}(outputFile)
 
 	if len(content) < 1 {
@@ -138,4 +218,9 @@ func writeToOutputFile(outputFilePath string, content string) {
 		_, _ = fmt.Fprintf(os.Stderr, "failed to append content [%s] to output file [%s]", content, outputFilePath)
 		_, _ = fmt.Fprintln(os.Stderr, err)
 	}
+}
+
+func buildChecksumCacheFilePath(file string) string {
+	dir, fileName := path.Split(file)
+	return path.Join(dir, fmt.Sprintf(".%s.%s-checksum", fileName, constants.BINARY_NAME))
 }

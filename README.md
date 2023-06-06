@@ -34,6 +34,8 @@ Notes:
 
 > hkd files checksum /tmp/file_1.txt /tmp/file_2.log /tmp/file_3.docx
 
+> hkd files checksum /docs/file_8.txt /logs/file_9.log --cache-and-trust # This will generate `/docs/.file_8.txt.hkd-checksum` and `/logs/.file_9.log.hkd-checksum` to save checksum output and prevent future checksum when `--cache-and-trust` provided again
+
 #### Perform PostgreSQL DB backup:
 > hkd db pg_dump --help
 

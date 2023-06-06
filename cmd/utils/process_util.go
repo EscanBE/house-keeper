@@ -9,10 +9,10 @@ import (
 )
 
 func LaunchApp(appName string, args []string, envVars []string) int {
-	return LaunchAppWithOutputCallback(appName, args, envVars, nil, nil)
+	return LaunchAppWithOutputCallback(appName, args, envVars, nil, nil, nil)
 }
 
-func LaunchAppWithOutputCallback(appName string, args []string, envVars []string, stdOutCallback, stdErrCallBack func(msg string)) int {
+func LaunchAppWithOutputCallback(appName string, args []string, envVars []string, stdOutCallback, stdErrCallBack, stdOutChecksumCacheWritingCb func(msg string)) int {
 	rsyncCmd := exec.Command(appName, args...)
 
 	rsyncCmd.Env = envVars
@@ -38,6 +38,9 @@ func LaunchAppWithOutputCallback(appName string, args []string, envVars []string
 				fmt.Println(msg)
 				if stdOutCallback != nil {
 					stdOutCallback(msg)
+				}
+				if stdOutChecksumCacheWritingCb != nil {
+					stdOutChecksumCacheWritingCb(msg)
 				}
 			}
 			if eScan {
