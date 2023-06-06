@@ -9,6 +9,10 @@ import (
 )
 
 func LaunchApp(appName string, args []string, envVars []string) int {
+	return LaunchAppWithOutputCallback(appName, args, envVars, nil, nil)
+}
+
+func LaunchAppWithOutputCallback(appName string, args []string, envVars []string, stdOutCallback, stdErrCallBack func(msg string)) int {
 	rsyncCmd := exec.Command(appName, args...)
 
 	rsyncCmd.Env = envVars
@@ -30,10 +34,18 @@ func LaunchApp(appName string, args []string, envVars []string) int {
 			oScan := rsyncStdOutScanner.Scan()
 			eScan := rsyncStdErrScanner.Scan()
 			if oScan {
-				fmt.Println(rsyncStdOutScanner.Text())
+				msg := rsyncStdOutScanner.Text()
+				fmt.Println(msg)
+				if stdOutCallback != nil {
+					stdOutCallback(msg)
+				}
 			}
 			if eScan {
-				_, _ = fmt.Fprintln(os.Stderr, rsyncStdErrScanner.Text())
+				msg := rsyncStdErrScanner.Text()
+				_, _ = fmt.Fprintln(os.Stderr, msg)
+				if stdErrCallBack != nil {
+					stdErrCallBack(msg)
+				}
 			}
 			if !oScan && !eScan {
 				break

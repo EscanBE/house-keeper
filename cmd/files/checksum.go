@@ -1,15 +1,14 @@
 package files
 
 import (
-	"bufio"
 	"fmt"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
 	"strings"
-	"sync"
 )
 
 // ChecksumCommands registers a sub-tree of commands
@@ -70,72 +69,37 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	rsyncCmd := exec.Command(toolName, file)
-
-	rsyncCmd.Env = os.Environ()
-	stdout, _ := rsyncCmd.StdoutPipe()
-	stderr, _ := rsyncCmd.StderrPipe()
-	rsyncStdOutScanner := bufio.NewScanner(stdout)
-	rsyncStdErrScanner := bufio.NewScanner(stderr)
-	err = rsyncCmd.Start()
-	if err != nil {
-		fmt.Println("problem when starting app", toolName, err)
-	}
-
-	var outputFile *os.File
 	outputFilePath, _ := cmd.Flags().GetString(constants.FLAG_OUTPUT_FILE)
 	outputFilePath = strings.TrimSpace(outputFilePath)
-	if len(outputFilePath) > 0 {
-		outputFile, err = os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to open file for append: "+outputFilePath))
-		}
-	} else {
-		outputFile = nil
+
+	writeToOutputFile(outputFilePath, "") // test write
+
+	outputCb := func(msg string) {
+		writeToOutputFile(outputFilePath, msg+"\n")
+	}
+	utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb)
+}
+
+func writeToOutputFile(outputFilePath string, content string) {
+	if len(outputFilePath) < 1 {
+		return
 	}
 
-	defer func() {
-		if outputFile != nil {
-			_ = outputFile.Close()
-		}
-	}()
-
-	appendOutput := func(text string) {
-		if outputFile == nil {
-			return
-		}
-
-		if _, err := outputFile.WriteString(text); err != nil {
-			fmt.Println("failed to append to output file", err)
-		}
+	outputFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		panic(errors.Wrap(err, "failed to open output file for append: "+outputFilePath))
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		for {
-			oScan := rsyncStdOutScanner.Scan()
-			eScan := rsyncStdErrScanner.Scan()
-			if oScan {
-				msg := rsyncStdOutScanner.Text()
-				fmt.Println(msg)
-				appendOutput(msg + "\n")
-			}
-			if eScan {
-				msg := rsyncStdErrScanner.Text()
-				fmt.Println(msg)
-				appendOutput(msg + "\n")
-			}
-			if !oScan && !eScan {
-				break
-			}
-		}
-		err = rsyncCmd.Wait()
-		if err != nil {
-			fmt.Println("problem when waiting process", err)
-		}
-		defer wg.Done()
-	}()
+	defer func(outputFile *os.File) {
+		_ = outputFile.Close()
+	}(outputFile)
 
-	wg.Wait()
+	if len(content) < 1 {
+		return
+	}
+
+	if _, err := outputFile.WriteString(content); err != nil {
+		fmt.Printf("failed to append content [%s] to output file [%s]", content, outputFilePath)
+		fmt.Println(err)
+	}
 }
