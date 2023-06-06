@@ -170,10 +170,10 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 	fmt.Println("Begin backup", outputFileName, "at", utils.NowStr())
 
 	exitCode := utils.LaunchApp(toolName, dumpArgs, envVars)
-	if exitCode == 0 {
-		fmt.Println("Finished backup", outputFileName, "at", utils.NowStr())
-	} else {
+	if exitCode != 0 {
 		fmt.Println("Failed to backup", outputFileName, "at", utils.NowStr())
+		os.Exit(exitCode)
 	}
-	os.Exit(exitCode)
+
+	fmt.Println("Finished backup", outputFileName, "at", utils.NowStr())
 }

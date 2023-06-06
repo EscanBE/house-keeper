@@ -18,7 +18,7 @@ func ChecksumCommands() *cobra.Command {
 		Use:     "checksum [file]",
 		Short:   "Checksum file using shasum/sha1sum",
 		Aliases: []string{"shasum", "sha1sum"},
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.MinimumNArgs(1),
 		Run:     checksumFile,
 	}
 
@@ -86,7 +86,11 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		panic(errors.Wrap(err, "problem while checking target file"))
 	}
 
-	utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb)
+	exitCode := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb)
+	if exitCode != 0 {
+		fmt.Println("failed to checksum file", file)
+		os.Exit(exitCode)
+	}
 }
 
 func writeToOutputFile(outputFilePath string, content string) {
@@ -96,7 +100,7 @@ func writeToOutputFile(outputFilePath string, content string) {
 
 	outputFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		fmt.Printf("failed to open file [%s] to write content [%s]", outputFilePath, content)
+		_, _ = fmt.Fprintf(os.Stderr, "failed to open file [%s] to write content [%s]", outputFilePath, content)
 	}
 
 	defer func(outputFile *os.File) {
@@ -108,7 +112,7 @@ func writeToOutputFile(outputFilePath string, content string) {
 	}
 
 	if _, err := outputFile.WriteString(content); err != nil {
-		fmt.Printf("failed to append content [%s] to output file [%s]", content, outputFilePath)
-		fmt.Println(err)
+		_, _ = fmt.Fprintf(os.Stderr, "failed to append content [%s] to output file [%s]", content, outputFilePath)
+		_, _ = fmt.Fprintln(os.Stderr, err)
 	}
 }

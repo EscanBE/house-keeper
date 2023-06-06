@@ -168,10 +168,10 @@ func backupPgDatabase(cmd *cobra.Command, _ []string) {
 	fmt.Println("Begin dump", outputFileName, "at", utils.NowStr())
 
 	exitCode := utils.LaunchApp(toolName, dumpArgs, envVars)
-	if exitCode == 0 {
-		fmt.Println("Finished dump", outputFileName, "at", utils.NowStr())
-	} else {
+	if exitCode != 0 {
 		fmt.Println("Failed to dump", outputFileName, "at", utils.NowStr())
+		os.Exit(exitCode)
 	}
-	os.Exit(exitCode)
+
+	fmt.Println("Finished dump", outputFileName, "at", utils.NowStr())
 }
