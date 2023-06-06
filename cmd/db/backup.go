@@ -18,7 +18,7 @@ func BackupCommands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "backup",
 		Short: fmt.Sprintf("** Deprecated command, use %s db pg_dump instead **", constants.BINARY_NAME),
-		Args:  cobra.ExactArgs(0),
+		Args:  cobra.NoArgs,
 		Run:   backupDatabase,
 	}
 

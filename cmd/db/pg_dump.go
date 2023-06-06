@@ -18,7 +18,7 @@ func PgDumpCommands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "pg_dump",
 		Short: "Backup DB (PostgreSQL)",
-		Args:  cobra.ExactArgs(0),
+		Args:  cobra.NoArgs,
 		Run:   backupPgDatabase,
 	}
 

@@ -24,10 +24,10 @@ func ListingCommands() *cobra.Command {
 	cmd := &cobra.Command{
 		Use:   "list",
 		Short: "Listing files and print them with absolute path",
-		Args:  cobra.ExactArgs(0),
+		Args:  cobra.NoArgs,
 		Run:   listFiles,
 	}
-	
+
 	utils.AddFlagWorkingDir(cmd)
 
 	cmd.PersistentFlags().Bool(
