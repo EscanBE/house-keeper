@@ -9,6 +9,10 @@ import (
 )
 
 func LaunchApp(appName string, args []string, envVars []string) int {
+	return LaunchAppWithOutputCallback(appName, args, envVars, nil, nil, nil, nil)
+}
+
+func LaunchAppWithOutputCallback(appName string, args []string, envVars []string, stdOutCallback1, stdErrCallBack1, stdOutCallback2, stdErrCallBack2 func(msg string)) int {
 	rsyncCmd := exec.Command(appName, args...)
 
 	rsyncCmd.Env = envVars
@@ -30,10 +34,24 @@ func LaunchApp(appName string, args []string, envVars []string) int {
 			oScan := rsyncStdOutScanner.Scan()
 			eScan := rsyncStdErrScanner.Scan()
 			if oScan {
-				fmt.Println(rsyncStdOutScanner.Text())
+				msg := rsyncStdOutScanner.Text()
+				fmt.Println(msg)
+				if stdOutCallback1 != nil {
+					stdOutCallback1(msg)
+				}
+				if stdOutCallback2 != nil {
+					stdOutCallback2(msg)
+				}
 			}
 			if eScan {
-				_, _ = fmt.Fprintln(os.Stderr, rsyncStdErrScanner.Text())
+				msg := rsyncStdErrScanner.Text()
+				_, _ = fmt.Fprintln(os.Stderr, msg)
+				if stdErrCallBack1 != nil {
+					stdErrCallBack1(msg)
+				}
+				if stdErrCallBack2 != nil {
+					stdErrCallBack2(msg)
+				}
 			}
 			if !oScan && !eScan {
 				break

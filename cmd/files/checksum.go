@@ -1,25 +1,26 @@
 package files
 
 import (
-	"bufio"
 	"fmt"
+	"github.com/EscanBE/go-ienumerable/goe"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
+	"path"
 	"strings"
-	"sync"
 )
 
 // ChecksumCommands registers a sub-tree of commands
 func ChecksumCommands() *cobra.Command {
 	//goland:noinspection SpellCheckingInspection
 	cmd := &cobra.Command{
-		Use:     "checksum [file]",
+		Use:     "checksum [file1] [file2...]",
 		Short:   "Checksum file using shasum/sha1sum",
 		Aliases: []string{"shasum", "sha1sum"},
-		Args:    cobra.ExactArgs(1),
+		Args:    cobra.MinimumNArgs(1),
 		Run:     checksumFile,
 	}
 
@@ -35,24 +36,28 @@ func ChecksumCommands() *cobra.Command {
 		"append output to file",
 	)
 
+	cmd.PersistentFlags().Bool(
+		constants.FLAG_CACHE_AND_TRUST,
+		false,
+		fmt.Sprintf("also write checksum result to a hidden cache file (.<filename>.%s-checksum) and skip checksum if file exists", constants.BINARY_NAME),
+	)
+
 	return cmd
 }
 
 func checksumFile(cmd *cobra.Command, args []string) {
-	file := strings.TrimSpace(args[0])
-	_, err := os.Stat(file)
-	if os.IsNotExist(err) {
-		panic(fmt.Errorf("file does not exists: %s", file))
-	}
-
 	var toolName string
 
 	customToolName, _ := cmd.Flags().GetString(constants.FLAG_TOOL_FILE)
 	customToolName = strings.TrimSpace(customToolName)
 	if len(customToolName) > 0 {
 		_, err := os.Stat(customToolName)
-		if os.IsNotExist(err) {
-			panic(fmt.Errorf("custom tool file does not exists: %s", customToolName))
+		if err != nil {
+			if os.IsNotExist(err) {
+				panic(fmt.Errorf("custom tool file does not exists: %s", customToolName))
+			}
+
+			panic(errors.Wrap(err, "problem while checking custom tool file path"))
 		}
 
 		toolName = customToolName
@@ -70,72 +75,159 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	rsyncCmd := exec.Command(toolName, file)
-
-	rsyncCmd.Env = os.Environ()
-	stdout, _ := rsyncCmd.StdoutPipe()
-	stderr, _ := rsyncCmd.StderrPipe()
-	rsyncStdOutScanner := bufio.NewScanner(stdout)
-	rsyncStdErrScanner := bufio.NewScanner(stderr)
-	err = rsyncCmd.Start()
-	if err != nil {
-		fmt.Println("problem when starting app", toolName, err)
-	}
-
-	var outputFile *os.File
 	outputFilePath, _ := cmd.Flags().GetString(constants.FLAG_OUTPUT_FILE)
 	outputFilePath = strings.TrimSpace(outputFilePath)
-	if len(outputFilePath) > 0 {
-		outputFile, err = os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
-		if err != nil {
-			panic(errors.Wrap(err, "failed to open file for append: "+outputFilePath))
-		}
-	} else {
-		outputFile = nil
+
+	writeToOutputFile(outputFilePath, "") // test write
+
+	outputCb := func(msg string) {
+		writeToOutputFile(outputFilePath, msg+"\n")
 	}
 
-	defer func() {
+	files := goe.NewIEnumerable(args...).SelectNewValue(func(file string) string {
+		return strings.TrimSpace(file)
+	}).Where(func(file string) bool {
+		return len(file) > 0
+	}).Distinct(nil).ToArray()
+
+	if len(files) < 1 {
+		panic("no file was provided")
+	}
+
+	checkInputFile := func(file string) {
+		_, err := os.Stat(file)
+		if err != nil {
+			if os.IsNotExist(err) {
+				panic(fmt.Errorf("file does not exists: %s", file))
+			}
+
+			panic(errors.Wrap(err, fmt.Sprintf("problem while checking target file %s", file)))
+		}
+	}
+
+	// check files before start checksum files
+	for _, file := range files {
+		checkInputFile(file)
+	}
+
+	cacheAndTrust, _ := cmd.Flags().GetBool(constants.FLAG_CACHE_AND_TRUST)
+
+	// start checksum files one by one
+	for _, file := range files {
+		fmt.Println("start checksum file", file)
+
+		checkInputFile(file)
+
+		checksumCacheFilePath := buildChecksumCacheFilePath(file)
+
+		var outputChecksumCacheCb func(msg string)
+
+		if cacheAndTrust {
+			_, err := os.Stat(checksumCacheFilePath)
+			if err != nil {
+				if os.IsNotExist(err) {
+					// ok
+				} else {
+					panic(errors.Wrap(err, fmt.Sprintf("problem while checking checksum cache file %s", checksumCacheFilePath)))
+				}
+			} else {
+				msg := fmt.Sprintf("skip checksum %s due to cache file %s is existing", file, checksumCacheFilePath)
+				fmt.Println(msg)
+				outputCb(msg)
+
+				bz, err := os.ReadFile(checksumCacheFilePath)
+				if err == nil && len(bz) > 0 {
+					msg := fmt.Sprintf("content was: %s", string(bz))
+					fmt.Println(msg)
+					outputCb(msg)
+				}
+				continue
+			}
+
+			outputCacheFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			if err != nil {
+				panic(errors.Wrap(err, fmt.Sprintf("failed to create checksum cache file %s", checksumCacheFilePath)))
+			}
+			if outputCacheFile != nil {
+				_ = outputCacheFile.Close()
+			}
+
+			outputChecksumCacheCb = func(msg string) {
+				writeToChecksumCacheFile(checksumCacheFilePath, msg)
+			}
+		} else {
+			outputChecksumCacheCb = nil
+		}
+
+		exitCode := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb, outputChecksumCacheCb, nil)
+		if exitCode != 0 {
+			fmt.Println("failed to checksum file", file)
+
+			if cacheAndTrust {
+				err := os.Remove(checksumCacheFilePath)
+				if err != nil {
+					fmt.Println("failed to remove checksum cache file", checksumCacheFilePath)
+				}
+			}
+
+			os.Exit(exitCode)
+		}
+	}
+}
+
+func writeToChecksumCacheFile(outputFilePath string, content string) {
+	if len(outputFilePath) < 1 {
+		panic("missing checksum cache file path")
+	}
+
+	if len(content) < 1 {
+		panic("missing checksum cache file content")
+	}
+
+	outputFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "failed to open checksum cache file [%s] to write content [%s]", outputFilePath, content)
+	}
+
+	defer func(outputFile *os.File) {
 		if outputFile != nil {
 			_ = outputFile.Close()
 		}
-	}()
+	}(outputFile)
 
-	appendOutput := func(text string) {
-		if outputFile == nil {
-			return
-		}
+	if _, err := outputFile.WriteString(content); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "failed to write content [%s] to checksum cache file [%s]", content, outputFilePath)
+		_, _ = fmt.Fprintln(os.Stderr, err)
+	}
+}
 
-		if _, err := outputFile.WriteString(text); err != nil {
-			fmt.Println("failed to append to output file", err)
-		}
+func writeToOutputFile(outputFilePath string, content string) {
+	if len(outputFilePath) < 1 {
+		return
 	}
 
-	var wg sync.WaitGroup
-	wg.Add(1)
-	go func() {
-		for {
-			oScan := rsyncStdOutScanner.Scan()
-			eScan := rsyncStdErrScanner.Scan()
-			if oScan {
-				msg := rsyncStdOutScanner.Text()
-				fmt.Println(msg)
-				appendOutput(msg + "\n")
-			}
-			if eScan {
-				msg := rsyncStdErrScanner.Text()
-				fmt.Println(msg)
-				appendOutput(msg + "\n")
-			}
-			if !oScan && !eScan {
-				break
-			}
-		}
-		err = rsyncCmd.Wait()
-		if err != nil {
-			fmt.Println("problem when waiting process", err)
-		}
-		defer wg.Done()
-	}()
+	outputFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+	if err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "failed to open file [%s] to write content [%s]", outputFilePath, content)
+	}
 
-	wg.Wait()
+	defer func(outputFile *os.File) {
+		if outputFile != nil {
+			_ = outputFile.Close()
+		}
+	}(outputFile)
+
+	if len(content) < 1 {
+		return
+	}
+
+	if _, err := outputFile.WriteString(content); err != nil {
+		_, _ = fmt.Fprintf(os.Stderr, "failed to append content [%s] to output file [%s]", content, outputFilePath)
+		_, _ = fmt.Fprintln(os.Stderr, err)
+	}
+}
+
+func buildChecksumCacheFilePath(file string) string {
+	dir, fileName := path.Split(file)
+	return path.Join(dir, fmt.Sprintf(".%s.%s-checksum", fileName, constants.BINARY_NAME))
 }

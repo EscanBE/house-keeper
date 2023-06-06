@@ -38,6 +38,8 @@ const (
 	FLAG_LOCAL_TO_LOCAL  = "local-to-local"
 
 	FLAG_SSHPASS_PASSPHRASE = "passphrase"
+
+	FLAG_CACHE_AND_TRUST = "cache-and-trust"
 )
 
 //goland:noinspection GoSnakeCaseUsage

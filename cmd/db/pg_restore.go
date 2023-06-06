@@ -187,10 +187,10 @@ func restorePgDatabase(cmd *cobra.Command, args []string) {
 	fmt.Println("Begin restore", inputFilePath, "at", utils.NowStr())
 
 	exitCode := utils.LaunchApp(toolName, restoreArgs, envVars)
-	if exitCode == 0 {
-		fmt.Println("Finished restore", inputFilePath, "at", utils.NowStr())
-	} else {
+	if exitCode != 0 {
 		fmt.Println("Failed to restore", inputFilePath, "at", utils.NowStr())
+		os.Exit(exitCode)
 	}
-	os.Exit(exitCode)
+
+	fmt.Println("Finished restore", inputFilePath, "at", utils.NowStr())
 }
