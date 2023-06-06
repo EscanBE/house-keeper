@@ -38,20 +38,18 @@ func ChecksumCommands() *cobra.Command {
 }
 
 func checksumFile(cmd *cobra.Command, args []string) {
-	file := strings.TrimSpace(args[0])
-	_, err := os.Stat(file)
-	if os.IsNotExist(err) {
-		panic(fmt.Errorf("file does not exists: %s", file))
-	}
-
 	var toolName string
 
 	customToolName, _ := cmd.Flags().GetString(constants.FLAG_TOOL_FILE)
 	customToolName = strings.TrimSpace(customToolName)
 	if len(customToolName) > 0 {
 		_, err := os.Stat(customToolName)
-		if os.IsNotExist(err) {
-			panic(fmt.Errorf("custom tool file does not exists: %s", customToolName))
+		if err != nil {
+			if os.IsNotExist(err) {
+				panic(fmt.Errorf("custom tool file does not exists: %s", customToolName))
+			}
+
+			panic(errors.Wrap(err, "problem while checking custom tool file path"))
 		}
 
 		toolName = customToolName
@@ -77,6 +75,17 @@ func checksumFile(cmd *cobra.Command, args []string) {
 	outputCb := func(msg string) {
 		writeToOutputFile(outputFilePath, msg+"\n")
 	}
+
+	file := strings.TrimSpace(args[0])
+	_, err := os.Stat(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			panic(fmt.Errorf("file does not exists: %s", file))
+		}
+
+		panic(errors.Wrap(err, "problem while checking target file"))
+	}
+
 	utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb)
 }
 
@@ -87,7 +96,7 @@ func writeToOutputFile(outputFilePath string, content string) {
 
 	outputFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		panic(errors.Wrap(err, "failed to open output file for append: "+outputFilePath))
+		fmt.Printf("failed to open file [%s] to write content [%s]", outputFilePath, content)
 	}
 
 	defer func(outputFile *os.File) {
