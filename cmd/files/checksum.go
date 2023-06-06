@@ -2,6 +2,7 @@ package files
 
 import (
 	"fmt"
+	"github.com/EscanBE/go-ienumerable/goe"
 	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
@@ -76,20 +77,42 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		writeToOutputFile(outputFilePath, msg+"\n")
 	}
 
-	file := strings.TrimSpace(args[0])
-	_, err := os.Stat(file)
-	if err != nil {
-		if os.IsNotExist(err) {
-			panic(fmt.Errorf("file does not exists: %s", file))
-		}
+	files := goe.NewIEnumerable(args...).SelectNewValue(func(file string) string {
+		return strings.TrimSpace(file)
+	}).Where(func(file string) bool {
+		return len(file) > 0
+	}).Distinct(nil).ToArray()
 
-		panic(errors.Wrap(err, "problem while checking target file"))
+	if len(files) < 1 {
+		panic("no file was provided")
 	}
 
-	exitCode := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb)
-	if exitCode != 0 {
-		fmt.Println("failed to checksum file", file)
-		os.Exit(exitCode)
+	checkInputFile := func(file string) {
+		_, err := os.Stat(file)
+		if err != nil {
+			if os.IsNotExist(err) {
+				panic(fmt.Errorf("file does not exists: %s", file))
+			}
+
+			panic(errors.Wrap(err, fmt.Sprintf("problem while checking target file %s", file)))
+		}
+	}
+
+	// check files before start checksum files
+	for _, file := range files {
+		checkInputFile(file)
+	}
+
+	// start checksum files one by one
+	for _, file := range files {
+		checkInputFile(file)
+
+		fmt.Println("start checksum file", file)
+		exitCode := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb)
+		if exitCode != 0 {
+			fmt.Println("failed to checksum file", file)
+			os.Exit(exitCode)
+		}
 	}
 }
 
