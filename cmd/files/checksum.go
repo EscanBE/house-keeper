@@ -16,7 +16,7 @@ import (
 func ChecksumCommands() *cobra.Command {
 	//goland:noinspection SpellCheckingInspection
 	cmd := &cobra.Command{
-		Use:     "checksum [file]",
+		Use:     "checksum [file1] [file2...]",
 		Short:   "Checksum file using shasum/sha1sum",
 		Aliases: []string{"shasum", "sha1sum"},
 		Args:    cobra.MinimumNArgs(1),
