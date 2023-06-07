@@ -10,6 +10,13 @@ import (
 	"strings"
 )
 
+//goland:noinspection SpellCheckingInspection
+const (
+	flagNoPubSub  = "no-pubsub"
+	flagDataOnly  = "data-only"
+	flagSuperUser = "superuser"
+)
+
 // PgRestoreCommands registers a sub-tree of commands
 func PgRestoreCommands() *cobra.Command {
 	cmd := &cobra.Command{
@@ -20,31 +27,31 @@ func PgRestoreCommands() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_PASSWORD_FILE,
+		flagPasswordFile,
 		"",
 		"file path which store password of the user which will be used to backup the database",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_TOOL_FILE,
+		flagToolFile,
 		"",
 		"custom file path for the pg_restore utility",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_SUPER_USER,
+		flagSuperUser,
 		"",
-		fmt.Sprintf("specify the superuser user name to disable triggers when restoring in data-only mode. This is relevant only if --%s (enabled by default) is used", constants.FLAG_DATA_ONLY),
+		fmt.Sprintf("specify the superuser user name to disable triggers when restoring in data-only mode. This is relevant only if --%s (enabled by default) is used", flagDataOnly),
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_DATA_ONLY,
+		flagDataOnly,
 		true,
-		fmt.Sprintf("restore data only, triggers are disabled, requires --%s flag", constants.FLAG_SUPER_USER),
+		fmt.Sprintf("restore data only, triggers are disabled, requires --%s flag", flagSuperUser),
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_NO_PUB_SUB,
+		flagNoPubSub,
 		true,
 		"do not output commands to restore publications/subscriptions, even if the archive contains them.",
 	)
@@ -72,45 +79,45 @@ func restorePgDatabase(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	host, _ := cmd.Flags().GetString(constants.FLAG_HOST)
+	host, _ := cmd.Flags().GetString(flagHost)
 	host = strings.TrimSpace(host)
 
-	port, _ := cmd.Flags().GetUint16(constants.FLAG_PORT)
+	port, _ := cmd.Flags().GetUint16(flagPort)
 	if port == 0 {
-		panic(fmt.Errorf("missing value for mandatory flag --%s", constants.FLAG_PORT))
+		panic(fmt.Errorf("missing value for mandatory flag --%s", flagPort))
 	}
 
-	dbName, _ := cmd.Flags().GetString(constants.FLAG_DB_NAME)
+	dbName, _ := cmd.Flags().GetString(flagDbName)
 	dbName = strings.TrimSpace(dbName)
 	if len(dbName) < 1 {
-		panic(fmt.Errorf("missing value for mandatory flag --%s", constants.FLAG_DB_NAME))
+		panic(fmt.Errorf("missing value for mandatory flag --%s", flagDbName))
 	}
 
-	userName, _ := cmd.Flags().GetString(constants.FLAG_USER_NAME)
+	userName, _ := cmd.Flags().GetString(flagUsername)
 	userName = strings.TrimSpace(userName)
 
-	dataOnly, _ := cmd.Flags().GetBool(constants.FLAG_DATA_ONLY)
+	dataOnly, _ := cmd.Flags().GetBool(flagDataOnly)
 
-	superUser, _ := cmd.Flags().GetString(constants.FLAG_SUPER_USER)
+	superUser, _ := cmd.Flags().GetString(flagSuperUser)
 	superUser = strings.TrimSpace(superUser)
 	if dataOnly {
 		if len(superUser) == 0 {
-			panic(fmt.Sprintf("flag --%s is mandatory when --%s=true (default)", constants.FLAG_SUPER_USER, constants.FLAG_DATA_ONLY))
+			panic(fmt.Sprintf("flag --%s is mandatory when --%s=true (default)", flagSuperUser, flagDataOnly))
 		}
 	} else {
 		if len(superUser) > 0 {
-			panic(fmt.Sprintf("flag --%s is not allowed when --%s=false", constants.FLAG_SUPER_USER, constants.FLAG_DATA_ONLY))
+			panic(fmt.Sprintf("flag --%s is not allowed when --%s=false", flagSuperUser, flagDataOnly))
 		}
 	}
 
-	schema, _ := cmd.Flags().GetString(constants.FLAG_SCHEMA)
+	schema, _ := cmd.Flags().GetString(flagSchema)
 	schema = strings.TrimSpace(schema)
 	if len(schema) > 0 {
-		panic(fmt.Sprintf("not yet supported flag --%s", constants.FLAG_SCHEMA))
+		panic(fmt.Sprintf("not yet supported flag --%s", flagSchema))
 	}
 
 	toolName := "pg_restore"
-	customToolName, _ := cmd.Flags().GetString(constants.FLAG_TOOL_FILE)
+	customToolName, _ := cmd.Flags().GetString(flagToolFile)
 	customToolName = strings.TrimSpace(customToolName)
 	if len(customToolName) > 0 {
 		_, err = os.Stat(customToolName)
@@ -123,10 +130,10 @@ func restorePgDatabase(cmd *cobra.Command, args []string) {
 
 	var envVars []string
 
-	passwordFile, _ := cmd.Flags().GetString(constants.FLAG_PASSWORD_FILE)
+	passwordFile, _ := cmd.Flags().GetString(flagPasswordFile)
 	if len(passwordFile) < 1 {
 		if len(strings.TrimSpace(os.Getenv(constants.ENV_PG_PASSWORD))) < 1 {
-			panic(fmt.Errorf("missing password for user %s, either environment variable %s or flag --%s is required", userName, constants.ENV_PG_PASSWORD, constants.FLAG_PASSWORD_FILE))
+			panic(fmt.Errorf("missing password for user %s, either environment variable %s or flag --%s is required", userName, constants.ENV_PG_PASSWORD, flagPasswordFile))
 		}
 
 		envVars = os.Environ()
@@ -168,8 +175,11 @@ func restorePgDatabase(cmd *cobra.Command, args []string) {
 	}
 	restoreArgs = append(restoreArgs, fmt.Sprintf("--dbname=%s", dbName))
 	restoreArgs = append(restoreArgs, "--single-transaction")
-	restoreArgs = append(restoreArgs, "--no-publications")
-	restoreArgs = append(restoreArgs, "--no-subscriptions")
+	noPubSub, _ := cmd.Flags().GetBool(flagNoPubSub)
+	if noPubSub {
+		restoreArgs = append(restoreArgs, "--no-publications")
+		restoreArgs = append(restoreArgs, "--no-subscriptions")
+	}
 	restoreArgs = append(restoreArgs, "--no-owner")
 	if dataOnly {
 		restoreArgs = append(restoreArgs, "--data-only")

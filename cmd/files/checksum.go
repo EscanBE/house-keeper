@@ -14,6 +14,12 @@ import (
 	"strings"
 )
 
+const (
+	flagExcludeDirs   = "exclude-dirs"
+	flagCacheAndTrust = "cache-and-trust"
+	flagOutputFile    = "output-file"
+)
+
 var cacheChecksumFileExt = fmt.Sprintf("%s-checksum", constants.BINARY_NAME)
 
 // ChecksumCommands registers a sub-tree of commands
@@ -28,25 +34,25 @@ func ChecksumCommands() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_TOOL_FILE,
+		flagToolFile,
 		"",
 		"custom checksum tool's file path",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_OUTPUT_FILE,
+		flagOutputFile,
 		"",
 		"append output to file",
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_CACHE_AND_TRUST,
+		flagCacheAndTrust,
 		false,
 		fmt.Sprintf("also write checksum result to a hidden cache file (.<filename>.%s) and skip checksum if file exists", cacheChecksumFileExt),
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_EXCLUDE_DIRS,
+		flagExcludeDirs,
 		false,
 		"silently drop directories from input, instead of throwing error. But if no input file provided, still panic due to no input",
 	)
@@ -57,7 +63,7 @@ func ChecksumCommands() *cobra.Command {
 func checksumFile(cmd *cobra.Command, args []string) {
 	var toolName string
 
-	customToolName, _ := cmd.Flags().GetString(constants.FLAG_TOOL_FILE)
+	customToolName, _ := cmd.Flags().GetString(flagToolFile)
 	customToolName = strings.TrimSpace(customToolName)
 	if len(customToolName) > 0 {
 		_, err := os.Stat(customToolName)
@@ -84,7 +90,7 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	outputFilePath, _ := cmd.Flags().GetString(constants.FLAG_OUTPUT_FILE)
+	outputFilePath, _ := cmd.Flags().GetString(flagOutputFile)
 	outputFilePath = strings.TrimSpace(outputFilePath)
 
 	writeToOutputFile(outputFilePath, "") // test write
@@ -120,7 +126,7 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		}
 	}
 
-	excludeDirs, _ := cmd.Flags().GetBool(constants.FLAG_EXCLUDE_DIRS)
+	excludeDirs, _ := cmd.Flags().GetBool(flagExcludeDirs)
 
 	ieFiles := goe.NewIEnumerable(args...).SelectNewValue(func(file string) string {
 		return strings.TrimSpace(file)
@@ -177,7 +183,7 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		checkInputFile(file)
 	}
 
-	cacheAndTrust, _ := cmd.Flags().GetBool(constants.FLAG_CACHE_AND_TRUST)
+	cacheAndTrust, _ := cmd.Flags().GetBool(flagCacheAndTrust)
 
 	// start checksum files one by one
 	for _, file := range files {

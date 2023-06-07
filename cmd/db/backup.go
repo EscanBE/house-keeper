@@ -23,25 +23,25 @@ func BackupCommands() *cobra.Command {
 	}
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_OUTPUT_FILE,
+		flagOutputFile,
 		fmt.Sprintf("db-%s.dump", time.Now().Format("2006-01-02")),
 		"specify name of the output backup file, file name only, default has layout: db-yyyy-MM-dd.dump",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_PASSWORD_FILE,
+		flagPasswordFile,
 		"",
 		"file path which store password of the user which will be used to backup the database",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_TOOL_FILE,
+		flagToolFile,
 		"",
 		"custom file path (absolute) for the backup utility (eg pg_dump of PostgreSQL)",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_SCHEMA,
+		flagSchema,
 		"public",
 		"specify schema to backup",
 	)
@@ -52,10 +52,10 @@ func BackupCommands() *cobra.Command {
 func backupDatabase(cmd *cobra.Command, _ []string) {
 	fmt.Printf("** WARNING ** this is a deprecated function, use [%s db pg_dump ...] instead!\n", constants.BINARY_NAME)
 
-	outputFileName, _ := cmd.Flags().GetString(constants.FLAG_OUTPUT_FILE)
+	outputFileName, _ := cmd.Flags().GetString(flagOutputFile)
 	outputFileName = strings.TrimSpace(outputFileName)
 	if len(outputFileName) < 1 {
-		panic(fmt.Errorf("missing value for mandatory flag --%s", constants.FLAG_OUTPUT_FILE))
+		panic(fmt.Errorf("missing value for mandatory flag --%s", flagOutputFile))
 	}
 
 	dir, outputFileName := path.Split(outputFileName)
@@ -81,28 +81,28 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 		}
 	}
 
-	host, _ := cmd.Flags().GetString(constants.FLAG_HOST)
+	host, _ := cmd.Flags().GetString(flagHost)
 	host = strings.TrimSpace(host)
 
-	port, _ := cmd.Flags().GetUint16(constants.FLAG_PORT)
+	port, _ := cmd.Flags().GetUint16(flagPort)
 	if port == 0 {
-		panic(fmt.Errorf("missing value for mandatory flag --%s", constants.FLAG_PORT))
+		panic(fmt.Errorf("missing value for mandatory flag --%s", flagPort))
 	}
 
-	dbName, _ := cmd.Flags().GetString(constants.FLAG_DB_NAME)
+	dbName, _ := cmd.Flags().GetString(flagDbName)
 	dbName = strings.TrimSpace(dbName)
 	if len(dbName) < 1 {
-		panic(fmt.Errorf("missing value for mandatory flag --%s", constants.FLAG_DB_NAME))
+		panic(fmt.Errorf("missing value for mandatory flag --%s", flagDbName))
 	}
 
-	userName, _ := cmd.Flags().GetString(constants.FLAG_USER_NAME)
+	userName, _ := cmd.Flags().GetString(flagUsername)
 	userName = strings.TrimSpace(userName)
 
-	schema, _ := cmd.Flags().GetString(constants.FLAG_SCHEMA)
+	schema, _ := cmd.Flags().GetString(flagSchema)
 	schema = strings.TrimSpace(schema)
 
 	toolName := "pg_dump"
-	customToolName, _ := cmd.Flags().GetString(constants.FLAG_TOOL_FILE)
+	customToolName, _ := cmd.Flags().GetString(flagToolFile)
 	customToolName = strings.TrimSpace(customToolName)
 	if len(customToolName) > 0 {
 		_, err = os.Stat(customToolName)
@@ -115,10 +115,10 @@ func backupDatabase(cmd *cobra.Command, _ []string) {
 
 	var envVars []string
 
-	passwordFile, _ := cmd.Flags().GetString(constants.FLAG_PASSWORD_FILE)
+	passwordFile, _ := cmd.Flags().GetString(flagPasswordFile)
 	if len(passwordFile) < 1 {
 		if len(strings.TrimSpace(os.Getenv(constants.ENV_PG_PASSWORD))) < 1 {
-			panic(fmt.Errorf("missing password for user %s, either environment variable %s or flag --%s is required", userName, constants.ENV_PG_PASSWORD, constants.FLAG_PASSWORD_FILE))
+			panic(fmt.Errorf("missing password for user %s, either environment variable %s or flag --%s is required", userName, constants.ENV_PG_PASSWORD, flagPasswordFile))
 		}
 
 		envVars = os.Environ()

@@ -4,6 +4,10 @@ import (
 	"github.com/spf13/cobra"
 )
 
+const (
+	flagToolFile = "tool-file"
+)
+
 // Commands registers a sub-tree of commands
 func Commands() *cobra.Command {
 	cmd := &cobra.Command{

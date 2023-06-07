@@ -5,7 +5,6 @@ import (
 	"github.com/EscanBE/go-ienumerable/goe"
 	libutils "github.com/EscanBE/go-lib/utils"
 	"github.com/EscanBE/house-keeper/cmd/utils"
-	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
@@ -15,6 +14,13 @@ import (
 )
 
 const (
+	flagContains   = "contains"
+	flagSilent     = "silent"
+	flagSkip       = "skip"
+	flagDeleteFile = "delete"
+	flagOrderBy    = "order-by"
+	flagDescending = "desc"
+
 	flagValueOrderByName = "name"
 	flagValueOrderByDate = "date"
 )
@@ -31,37 +37,37 @@ func ListingCommands() *cobra.Command {
 	utils.AddFlagWorkingDir(cmd)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_SILENT,
+		flagSilent,
 		false,
 		"when error occurs, process will exit immediately with exit code 0, no result will be printed",
 	)
 
 	cmd.PersistentFlags().StringArray(
-		constants.FLAG_CONTAINS,
+		flagContains,
 		make([]string, 0),
-		fmt.Sprintf("print only files contains specific string, can be repeated multiple times, eg: --%s abc --%s def", constants.FLAG_CONTAINS, constants.FLAG_CONTAINS),
+		fmt.Sprintf("print only files contains specific string in file name, can be repeated multiple times, eg: --%s abc --%s def", flagContains, flagContains),
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_ORDER_BY,
+		flagOrderBy,
 		flagValueOrderByName,
 		fmt.Sprintf("order files by %s or %s (creation date time)", flagValueOrderByName, flagValueOrderByDate),
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_DESC,
+		flagDescending,
 		false,
 		"listing files by descending order",
 	)
 
 	cmd.PersistentFlags().Int(
-		constants.FLAG_SKIP,
+		flagSkip,
 		0,
 		"skip first N results",
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_DELETE,
+		flagDeleteFile,
 		false,
 		"files in result will be deleted, make sure permission setup correctly",
 	)
@@ -70,7 +76,7 @@ func ListingCommands() *cobra.Command {
 }
 
 func listFiles(cmd *cobra.Command, _ []string) {
-	ignoreError, _ := cmd.Flags().GetBool(constants.FLAG_SILENT)
+	ignoreError, _ := cmd.Flags().GetBool(flagSilent)
 
 	defer func() {
 		if ignoreError {
@@ -78,21 +84,21 @@ func listFiles(cmd *cobra.Command, _ []string) {
 		}
 	}()
 
-	orderBy, _ := cmd.Flags().GetString(constants.FLAG_ORDER_BY)
+	orderBy, _ := cmd.Flags().GetString(flagOrderBy)
 	if len(orderBy) < 1 {
-		panic(fmt.Errorf("missing value for mandatory flag --%s", constants.FLAG_ORDER_BY))
+		panic(fmt.Errorf("missing value for mandatory flag --%s", flagOrderBy))
 	}
 
-	orderByDesc, _ := cmd.Flags().GetBool(constants.FLAG_DESC)
+	orderByDesc, _ := cmd.Flags().GetBool(flagDescending)
 
-	deleteResultFiles, _ := cmd.Flags().GetBool(constants.FLAG_DELETE)
+	deleteResultFiles, _ := cmd.Flags().GetBool(flagDeleteFile)
 
-	skip, _ := cmd.Flags().GetInt(constants.FLAG_SKIP)
+	skip, _ := cmd.Flags().GetInt(flagSkip)
 	if skip < 0 {
-		panic(fmt.Errorf("negative value for flag --%s", constants.FLAG_SKIP))
+		panic(fmt.Errorf("negative value for flag --%s", flagSkip))
 	}
 
-	containsString, _ := cmd.Flags().GetStringArray(constants.FLAG_CONTAINS)
+	containsString, _ := cmd.Flags().GetStringArray(flagContains)
 
 	workingDir := utils.ReadFlagWorkingDir(cmd)
 
@@ -134,7 +140,7 @@ func listFiles(cmd *cobra.Command, _ []string) {
 		}
 		files = orderedFiles.GetOrderedEnumerable()
 	} else {
-		panic(fmt.Errorf("not supported value \"%s\" for flag --%s", orderBy, constants.FLAG_ORDER_BY))
+		panic(fmt.Errorf("not supported value \"%s\" for flag --%s", orderBy, flagOrderBy))
 	}
 
 	files = files.Skip(skip)

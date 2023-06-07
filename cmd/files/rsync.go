@@ -11,6 +11,17 @@ import (
 	"strings"
 )
 
+const (
+	flagRemoteToLocal         = "remote-to-local"
+	flagLocalToRemote         = "local-to-remote"
+	flagLocalToLocal          = "local-to-local"
+	flagNoPassword            = "no-password"
+	flagSshPassPassphraseMode = "passphrase"
+	flagLogFile               = "log-file"
+	flagPasswordFile          = "password-file"
+	flagToolOptions           = "tool-options"
+)
+
 var defaultRsyncOptions = []string{"--human-readable", "--compress", "--stats"}
 
 // RsyncCommands registers a sub-tree of commands
@@ -35,55 +46,55 @@ Note:
 	}
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_REMOTE_TO_LOCAL,
+		flagRemoteToLocal,
 		false,
 		"ensure the transfer direction is from remote server to local",
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_LOCAL_TO_REMOTE,
+		flagLocalToRemote,
 		false,
 		"ensure the transfer direction is from local to remote server",
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_LOCAL_TO_LOCAL,
+		flagLocalToLocal,
 		false,
 		"ensure the transfer direction is from local to local",
 	)
 
 	cmd.PersistentFlags().StringSlice(
-		constants.FLAG_TOOL_OPTIONS,
+		flagToolOptions,
 		defaultRsyncOptions,
 		"supply options passes to rsync, comma separated",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_TOOL_FILE,
+		flagToolFile,
 		"",
 		"custom rsync file path (absolute)",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_PASSWORD_FILE,
+		flagPasswordFile,
 		"",
 		"file path which store password to access remote server",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_LOG_FILE,
+		flagLogFile,
 		"",
 		"log what we're doing to the specified file",
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_NO_PASSWORD,
+		flagNoPassword,
 		false,
 		"force connect remote server without password (when remote user does not have password or identity key does not protected by password)",
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_SSHPASS_PASSPHRASE,
+		flagSshPassPassphraseMode,
 		false,
 		"by default sshpass (if sshpass exists) passes password. If you are authenticating using passphrase, program will be hang (search phrase not found), supply this flag to indicate and would fix it",
 	)
@@ -108,19 +119,19 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	if isSrcRemote && isDestRemote {
 		panic("not support transfer direction from remote to remote")
 	} else if isSrcRemote && !isDestRemote {
-		confirm, _ := cmd.Flags().GetBool(constants.FLAG_REMOTE_TO_LOCAL)
+		confirm, _ := cmd.Flags().GetBool(flagRemoteToLocal)
 		if !confirm {
-			panic(fmt.Errorf("detected transfer direction is from remote to local so flag --%s is required to confirm", constants.FLAG_REMOTE_TO_LOCAL))
+			panic(fmt.Errorf("detected transfer direction is from remote to local so flag --%s is required to confirm", flagRemoteToLocal))
 		}
 	} else if !isSrcRemote && isDestRemote {
-		confirm, _ := cmd.Flags().GetBool(constants.FLAG_LOCAL_TO_REMOTE)
+		confirm, _ := cmd.Flags().GetBool(flagLocalToRemote)
 		if !confirm {
-			panic(fmt.Errorf("detected transfer direction is from local to remote so flag --%s is required to confirm", constants.FLAG_LOCAL_TO_REMOTE))
+			panic(fmt.Errorf("detected transfer direction is from local to remote so flag --%s is required to confirm", flagLocalToRemote))
 		}
 	} else if !isSrcRemote && !isDestRemote {
-		confirm, _ := cmd.Flags().GetBool(constants.FLAG_LOCAL_TO_LOCAL)
+		confirm, _ := cmd.Flags().GetBool(flagLocalToLocal)
 		if !confirm {
-			panic(fmt.Errorf("detected local transfer so flag --%s is required to confirm", constants.FLAG_LOCAL_TO_LOCAL))
+			panic(fmt.Errorf("detected local transfer so flag --%s is required to confirm", flagLocalToLocal))
 		}
 	}
 
@@ -152,7 +163,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	}
 
 	toolName := "rsync"
-	customToolName, _ := cmd.Flags().GetString(constants.FLAG_TOOL_FILE)
+	customToolName, _ := cmd.Flags().GetString(flagToolFile)
 	customToolName = strings.TrimSpace(customToolName)
 	if len(customToolName) > 0 {
 		_, err := os.Stat(customToolName)
@@ -163,18 +174,18 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 		toolName = customToolName
 	}
 
-	options, _ := cmd.Flags().GetStringSlice(constants.FLAG_TOOL_OPTIONS)
+	options, _ := cmd.Flags().GetStringSlice(flagToolOptions)
 	if len(options) < 1 {
 		options = defaultRsyncOptions
 	}
 
-	logFile, _ := cmd.Flags().GetString(constants.FLAG_LOG_FILE)
+	logFile, _ := cmd.Flags().GetString(flagLogFile)
 	if len(logFile) > 0 {
 		duplicated := goe.NewIEnumerable[string](options...).AnyBy(func(flag string) bool {
 			return strings.HasPrefix(flag, "--log-file ") || strings.HasPrefix(flag, "--log-file=")
 		})
 		if duplicated {
-			panic(fmt.Sprintf("duplicated flags --%s", constants.FLAG_LOG_FILE))
+			panic(fmt.Sprintf("duplicated flags --%s", flagLogFile))
 		}
 		options = append(options, "--log-file", logFile)
 	}
@@ -184,15 +195,15 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 		return
 	}
 
-	noPassword, _ := cmd.Flags().GetBool(constants.FLAG_NO_PASSWORD)
+	noPassword, _ := cmd.Flags().GetBool(flagNoPassword)
 	if noPassword {
 		launchApp(toolName, append(options, "--rsh", "ssh", src, dest))
 		return
 	}
 
-	sshPassPhrase, _ := cmd.Flags().GetBool(constants.FLAG_SSHPASS_PASSPHRASE)
+	sshPassPhrase, _ := cmd.Flags().GetBool(flagSshPassPassphraseMode)
 
-	passwordFile, _ := cmd.Flags().GetString(constants.FLAG_PASSWORD_FILE)
+	passwordFile, _ := cmd.Flags().GetString(flagPasswordFile)
 	if len(passwordFile) > 0 {
 		fip, err := os.Stat(passwordFile)
 		if os.IsNotExist(err) {
@@ -254,7 +265,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	} else if len(sshPassword) > 0 {
 		password = sshPassword
 	} else {
-		panic(fmt.Errorf("missing password for remote server, either environment variable %s or %s or flag --%s is required", constants.ENV_RSYNC_PASSWORD, constants.ENV_SSHPASS, constants.FLAG_PASSWORD_FILE))
+		panic(fmt.Errorf("missing password for remote server, either environment variable %s or %s or flag --%s is required", constants.ENV_RSYNC_PASSWORD, constants.ENV_SSHPASS, flagPasswordFile))
 	}
 
 	if utils.HasToolSshPass() {
