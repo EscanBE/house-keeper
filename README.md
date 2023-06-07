@@ -1,6 +1,6 @@
 ## House Keeper
 #### A tool to manage Escan
-> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.6.4
+> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.6.5
 
 ### Commands:
 
@@ -11,7 +11,7 @@
 
 > hkd files list --working-directory '/tmp/backup-db' --order-by name --desc --contains '.dump' --skip 3 --silent --delete
 
-#### Sync files:
+#### Sync files between servers:
 > hkd files rsync --help
 
 > RSYNC_PASSWORD=1234567 hkd files rsync /var/log/nginx/access.log backup@192.168.0.2:/mnt/md0/backup/nginx-logs --local-to-remote

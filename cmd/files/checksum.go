@@ -14,6 +14,8 @@ import (
 	"strings"
 )
 
+var cacheChecksumFileExt = fmt.Sprintf("%s-checksum", constants.BINARY_NAME)
+
 // ChecksumCommands registers a sub-tree of commands
 func ChecksumCommands() *cobra.Command {
 	//goland:noinspection SpellCheckingInspection
@@ -40,7 +42,7 @@ func ChecksumCommands() *cobra.Command {
 	cmd.PersistentFlags().Bool(
 		constants.FLAG_CACHE_AND_TRUST,
 		false,
-		fmt.Sprintf("also write checksum result to a hidden cache file (.<filename>.%s-checksum) and skip checksum if file exists", constants.BINARY_NAME),
+		fmt.Sprintf("also write checksum result to a hidden cache file (.<filename>.%s) and skip checksum if file exists", cacheChecksumFileExt),
 	)
 
 	cmd.PersistentFlags().Bool(
@@ -123,7 +125,16 @@ func checksumFile(cmd *cobra.Command, args []string) {
 	ieFiles := goe.NewIEnumerable(args...).SelectNewValue(func(file string) string {
 		return strings.TrimSpace(file)
 	}).Where(func(file string) bool {
-		return len(file) > 0
+		if len(file) < 1 {
+			return false
+		}
+
+		if strings.HasSuffix(file, "."+cacheChecksumFileExt) {
+			fmt.Println(file, "is a cached-checksum file, ignored")
+			return false
+		}
+
+		return true
 	})
 
 	if excludeDirs {
@@ -132,7 +143,11 @@ func checksumFile(cmd *cobra.Command, args []string) {
 			if err != nil {
 				return true
 			}
-			return !fi.IsDir()
+			if fi.IsDir() {
+				fmt.Println(file, "is a directory, ignored")
+				return false
+			}
+			return true
 		})
 	}
 
@@ -281,5 +296,5 @@ func writeToOutputFile(outputFilePath string, content string) {
 
 func buildChecksumCacheFilePath(file string) string {
 	dir, fileName := path.Split(file)
-	return path.Join(dir, fmt.Sprintf(".%s.%s-checksum", fileName, constants.BINARY_NAME))
+	return path.Join(dir, fmt.Sprintf(".%s.%s", fileName, cacheChecksumFileExt))
 }
