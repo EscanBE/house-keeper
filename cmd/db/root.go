@@ -2,8 +2,19 @@ package db
 
 import (
 	"github.com/EscanBE/house-keeper/cmd/utils"
-	"github.com/EscanBE/house-keeper/constants"
 	"github.com/spf13/cobra"
+)
+
+const (
+	flagOutputFile = "output-file"
+	flagToolFile   = "tool-file"
+
+	flagHost         = "host"
+	flagPort         = "port"
+	flagDbName       = "dbname"
+	flagUsername     = "username"
+	flagSchema       = "schema"
+	flagPasswordFile = "password-file"
 )
 
 // Commands registers a sub-tree of commands
@@ -22,27 +33,27 @@ func Commands() *cobra.Command {
 	utils.AddFlagWorkingDir(cmd)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_HOST,
+		flagHost,
 		"localhost",
 		"database host",
 	)
 
 	cmd.PersistentFlags().Uint16(
-		constants.FLAG_PORT,
+		flagPort,
 		5432,
 		"database port",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_DB_NAME,
+		flagDbName,
 		"postgres",
 		"database name",
 	)
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_USER_NAME,
+		flagUsername,
 		"postgres",
-		"database username",
+		"username to be used to connect to database",
 	)
 
 	return cmd

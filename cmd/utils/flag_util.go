@@ -2,10 +2,13 @@ package utils
 
 import (
 	"fmt"
-	"github.com/EscanBE/house-keeper/constants"
 	"github.com/spf13/cobra"
 	"os"
 	"strings"
+)
+
+const (
+	flagWorkingDir = "working-directory"
 )
 
 func AddFlagWorkingDir(cmd *cobra.Command) {
@@ -15,14 +18,14 @@ func AddFlagWorkingDir(cmd *cobra.Command) {
 	}
 
 	cmd.PersistentFlags().String(
-		constants.FLAG_WORKING_DIR,
+		flagWorkingDir,
 		curDir,
 		"the working directory",
 	)
 }
 
 func ReadFlagWorkingDir(cmd *cobra.Command) string {
-	workingDir, _ := cmd.Flags().GetString(constants.FLAG_WORKING_DIR)
+	workingDir, _ := cmd.Flags().GetString(flagWorkingDir)
 	workingDir = strings.TrimSpace(workingDir)
 	if len(workingDir) < 1 {
 		panic(fmt.Errorf("empty working directory"))
