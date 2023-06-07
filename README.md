@@ -1,6 +1,6 @@
 ## House Keeper
 #### A tool to manage Escan
-> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.6.3
+> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.6.4
 
 ### Commands:
 
@@ -35,6 +35,8 @@ Notes:
 > hkd files checksum /tmp/file_1.txt /tmp/file_2.log /tmp/file_3.docx
 
 > hkd files checksum /docs/file_8.txt /logs/file_9.log --cache-and-trust # This will generate `/docs/.file_8.txt.hkd-checksum` and `/logs/.file_9.log.hkd-checksum` to save checksum output and prevent future checksum when `--cache-and-trust` provided again
+
+> ls -1 | hkd files checksum [--exclude-dirs]
 
 #### Perform PostgreSQL DB backup:
 > hkd db pg_dump --help

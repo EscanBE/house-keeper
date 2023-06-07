@@ -7,6 +7,7 @@ import (
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
+	"io"
 	"os"
 	"os/exec"
 	"path"
@@ -20,7 +21,7 @@ func ChecksumCommands() *cobra.Command {
 		Use:     "checksum [file1] [file2...]",
 		Short:   "Checksum file using shasum/sha1sum",
 		Aliases: []string{"shasum", "sha1sum"},
-		Args:    cobra.MinimumNArgs(1),
+		Args:    cobra.MinimumNArgs(0),
 		Run:     checksumFile,
 	}
 
@@ -40,6 +41,12 @@ func ChecksumCommands() *cobra.Command {
 		constants.FLAG_CACHE_AND_TRUST,
 		false,
 		fmt.Sprintf("also write checksum result to a hidden cache file (.<filename>.%s-checksum) and skip checksum if file exists", constants.BINARY_NAME),
+	)
+
+	cmd.PersistentFlags().Bool(
+		constants.FLAG_EXCLUDE_DIRS,
+		false,
+		"silently drop directories from input, instead of throwing error. But if no input file provided, still panic due to no input",
 	)
 
 	return cmd
@@ -84,24 +91,69 @@ func checksumFile(cmd *cobra.Command, args []string) {
 		writeToOutputFile(outputFilePath, msg+"\n")
 	}
 
-	files := goe.NewIEnumerable(args...).SelectNewValue(func(file string) string {
+	if len(args) == 0 {
+		fi, _ := os.Stdin.Stat()
+		if (fi.Mode() & os.ModeCharDevice) == 0 {
+			// data from pipe
+		} else {
+			fmt.Println("Input file path to checksum, double Enter to finish input:")
+		}
+
+		var file string
+		for {
+			n, err := fmt.Scanln(&file)
+			if err != nil {
+				if err == io.EOF {
+					break
+				}
+				if strings.Contains(err.Error(), "unexpected newline") {
+					break
+				}
+				panic(errors.Wrap(err, "failed to read input"))
+			}
+			if n < 1 {
+				break
+			}
+			args = append(args, file)
+		}
+	}
+
+	excludeDirs, _ := cmd.Flags().GetBool(constants.FLAG_EXCLUDE_DIRS)
+
+	ieFiles := goe.NewIEnumerable(args...).SelectNewValue(func(file string) string {
 		return strings.TrimSpace(file)
 	}).Where(func(file string) bool {
 		return len(file) > 0
-	}).Distinct(nil).ToArray()
+	})
+
+	if excludeDirs {
+		ieFiles = ieFiles.Where(func(file string) bool {
+			fi, err := os.Stat(file)
+			if err != nil {
+				return true
+			}
+			return !fi.IsDir()
+		})
+	}
+
+	files := ieFiles.Distinct(nil).ToArray()
 
 	if len(files) < 1 {
 		panic("no file was provided")
 	}
 
 	checkInputFile := func(file string) {
-		_, err := os.Stat(file)
+		fi, err := os.Stat(file)
 		if err != nil {
 			if os.IsNotExist(err) {
-				panic(fmt.Errorf("file does not exists: %s", file))
+				panic(fmt.Sprintf("file does not exists: %s", file))
 			}
 
 			panic(errors.Wrap(err, fmt.Sprintf("problem while checking target file %s", file)))
+		}
+
+		if fi.IsDir() {
+			panic(fmt.Sprintf("require file but found directory: %s", file))
 		}
 	}
 
@@ -144,7 +196,7 @@ func checksumFile(cmd *cobra.Command, args []string) {
 				continue
 			}
 
-			outputCacheFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
+			outputCacheFile, err := os.OpenFile(checksumCacheFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 			if err != nil {
 				panic(errors.Wrap(err, fmt.Sprintf("failed to create checksum cache file %s", checksumCacheFilePath)))
 			}
