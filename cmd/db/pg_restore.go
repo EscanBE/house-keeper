@@ -10,6 +10,12 @@ import (
 	"strings"
 )
 
+//goland:noinspection SpellCheckingInspection
+const (
+	flagNoPubSub = "no-pubsub"
+	flagDataOnly = "data-only"
+)
+
 // PgRestoreCommands registers a sub-tree of commands
 func PgRestoreCommands() *cobra.Command {
 	cmd := &cobra.Command{
@@ -34,17 +40,17 @@ func PgRestoreCommands() *cobra.Command {
 	cmd.PersistentFlags().String(
 		constants.FLAG_SUPER_USER,
 		"",
-		fmt.Sprintf("specify the superuser user name to disable triggers when restoring in data-only mode. This is relevant only if --%s (enabled by default) is used", constants.FLAG_DATA_ONLY),
+		fmt.Sprintf("specify the superuser user name to disable triggers when restoring in data-only mode. This is relevant only if --%s (enabled by default) is used", flagDataOnly),
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_DATA_ONLY,
+		flagDataOnly,
 		true,
 		fmt.Sprintf("restore data only, triggers are disabled, requires --%s flag", constants.FLAG_SUPER_USER),
 	)
 
 	cmd.PersistentFlags().Bool(
-		constants.FLAG_NO_PUB_SUB,
+		flagNoPubSub,
 		true,
 		"do not output commands to restore publications/subscriptions, even if the archive contains them.",
 	)
@@ -89,17 +95,17 @@ func restorePgDatabase(cmd *cobra.Command, args []string) {
 	userName, _ := cmd.Flags().GetString(constants.FLAG_USER_NAME)
 	userName = strings.TrimSpace(userName)
 
-	dataOnly, _ := cmd.Flags().GetBool(constants.FLAG_DATA_ONLY)
+	dataOnly, _ := cmd.Flags().GetBool(flagDataOnly)
 
 	superUser, _ := cmd.Flags().GetString(constants.FLAG_SUPER_USER)
 	superUser = strings.TrimSpace(superUser)
 	if dataOnly {
 		if len(superUser) == 0 {
-			panic(fmt.Sprintf("flag --%s is mandatory when --%s=true (default)", constants.FLAG_SUPER_USER, constants.FLAG_DATA_ONLY))
+			panic(fmt.Sprintf("flag --%s is mandatory when --%s=true (default)", constants.FLAG_SUPER_USER, flagDataOnly))
 		}
 	} else {
 		if len(superUser) > 0 {
-			panic(fmt.Sprintf("flag --%s is not allowed when --%s=false", constants.FLAG_SUPER_USER, constants.FLAG_DATA_ONLY))
+			panic(fmt.Sprintf("flag --%s is not allowed when --%s=false", constants.FLAG_SUPER_USER, flagDataOnly))
 		}
 	}
 
@@ -168,8 +174,11 @@ func restorePgDatabase(cmd *cobra.Command, args []string) {
 	}
 	restoreArgs = append(restoreArgs, fmt.Sprintf("--dbname=%s", dbName))
 	restoreArgs = append(restoreArgs, "--single-transaction")
-	restoreArgs = append(restoreArgs, "--no-publications")
-	restoreArgs = append(restoreArgs, "--no-subscriptions")
+	noPubSub, _ := cmd.Flags().GetBool(flagNoPubSub)
+	if noPubSub {
+		restoreArgs = append(restoreArgs, "--no-publications")
+		restoreArgs = append(restoreArgs, "--no-subscriptions")
+	}
 	restoreArgs = append(restoreArgs, "--no-owner")
 	if dataOnly {
 		restoreArgs = append(restoreArgs, "--data-only")
