@@ -26,6 +26,7 @@ const (
 	FLAG_SCHEMA        = "schema"
 	FLAG_OUTPUT_FILE   = "output-file"
 	FLAG_LOG_FILE      = "log-file"
+	FLAG_EXCLUDE_DIRS  = "exclude-dirs"
 	FLAG_PASSWORD_FILE = "password-file"
 	FLAG_NO_PASSWORD   = "no-password"
 	FLAG_TOOL_FILE     = "tool-file"
