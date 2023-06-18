@@ -14,15 +14,10 @@ BUILD_FLAGS := -ldflags '$(LD_FLAGS)'
 ###############################################################################
 
 build: go.sum
-ifeq ($(OS),Windows_NT)
-	@echo "building hkd binary..."
-	@echo "Flags $(BUILD_FLAGS)"
-	@go build -mod=readonly $(BUILD_FLAGS) -o build/hkd.exe ./cmd/hkd
-else
 	@echo "building hkd binary..."
 	@echo "Flags $(BUILD_FLAGS)"
 	@go build -mod=readonly $(BUILD_FLAGS) -o build/hkd ./cmd/hkd
-endif
+	@echo "Builded successfully"
 .PHONY: build
 
 ###############################################################################
@@ -33,4 +28,5 @@ install: go.sum
 	@echo "installing hkd binary..."
 	@echo "Flags $(BUILD_FLAGS)"
 	@go install -mod=readonly $(BUILD_FLAGS) ./cmd/hkd
+	@echo "Installed successfully"
 .PHONY: install
