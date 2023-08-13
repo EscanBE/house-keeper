@@ -1,6 +1,7 @@
 package cmd
 
 import (
+	"github.com/EscanBE/house-keeper/cmd/config"
 	"github.com/EscanBE/house-keeper/cmd/db"
 	list "github.com/EscanBE/house-keeper/cmd/files"
 	"github.com/EscanBE/house-keeper/constants"
@@ -29,4 +30,5 @@ func Execute() {
 func init() {
 	rootCmd.AddCommand(list.Commands())
 	rootCmd.AddCommand(db.Commands())
+	rootCmd.AddCommand(config.Commands())
 }
