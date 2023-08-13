@@ -20,7 +20,7 @@ const (
 	flagSshKeyPathRoot              = "key-root"
 	flagSshKeyPathUser              = "key-user"
 
-	tsvLineFormat = "Host<tab>HostName<tab>User"
+	tsvLineFormat = "Host<tab>HostName<tab>User(<tab># Optional comment)"
 )
 
 var tsvInputFilePath, sshConfigOutputFilePath, sshKeyPathRoot, sshKeyPathUser string
@@ -137,6 +137,7 @@ func configureSshConfigFile(_ *cobra.Command, _ []string) {
 		host := strings.TrimSpace(spl[0])
 		hostName := strings.TrimSpace(spl[1])
 		user := strings.TrimSpace(spl[2])
+		var comment string
 
 		if len(host) < 1 {
 			panic(fmt.Sprintf("SSH config host must not be empty at line: %s", line))
@@ -151,14 +152,23 @@ func configureSshConfigFile(_ *cobra.Command, _ []string) {
 		}
 		if len(user) < 1 {
 			panic(fmt.Sprintf("SSH config user must not be empty at line: %s", line))
+		} else {
+			commentSymbolIdx := strings.Index(user, "#")
+			if commentSymbolIdx == 0 {
+				panic("comment symbol '#' could not be exists at first character")
+			} else if commentSymbolIdx > 0 {
+				spl = strings.Split(user, "#")
+				user = strings.TrimSpace(spl[0])
+				comment = strings.TrimSpace(spl[1])
+			}
 		}
 
 		sshConfigContent += fmt.Sprintf(`
-Host %s
+Host %s%s
     HostName %s
     User %s
     IdentityFile %s
-`, host, hostName, user, libutils.ConditionalString(strings.EqualFold(user, "root"), sshKeyPathRoot, sshKeyPathUser))
+`, host, libutils.ConditionalString(libutils.IsBlank(comment), "", fmt.Sprintf(" # %s", comment)), hostName, user, libutils.ConditionalString(strings.EqualFold(user, "root"), sshKeyPathRoot, sshKeyPathUser))
 
 	}
 
