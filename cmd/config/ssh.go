@@ -9,6 +9,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
+	"regexp"
 	"strings"
 )
 
@@ -74,6 +75,8 @@ func ConfigureSshCommands() *cobra.Command {
 	return cmd
 }
 
+var regexReplaceContinousSpace = regexp.MustCompile("[\\s\\t]+")
+
 func configureSshConfigFile(_ *cobra.Command, _ []string) {
 	if libutils.IsBlank(tsvInputFilePath) {
 		panic(fmt.Errorf("input TSV is required by supplying mandatory flag --%s", flagTsvInputFilePath))
@@ -123,7 +126,10 @@ func configureSshConfigFile(_ *cobra.Command, _ []string) {
 	}
 	hostTracker := make(map[string]bool)
 	for _, line := range tsvLines.ToArray() {
-		spl := strings.SplitN(strings.Replace(line, "\t", " ", -1), " ", 3)
+		spl := strings.SplitN(
+			regexReplaceContinousSpace.ReplaceAllString(strings.Replace(line, "\t", " ", -1), " "),
+			" ", 3,
+		)
 		if len(spl) != 3 {
 			panic(fmt.Sprintf("in input tsv file, each line must maintains format: %s", tsvLineFormat))
 		}
