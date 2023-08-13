@@ -1,6 +1,6 @@
 ## House Keeper
 #### A tool to manage Escan
-> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.6.5
+> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.7.0
 
 ### Commands:
 
@@ -59,6 +59,9 @@ Notes:
 Notes:
 - Either environment variable PGPASSWORD or flag --password-file is required (priority flag)
 - Rely on pg_restore command to perform backup action for PostgreSQL, it actually set environment variable PGPASSWORD and then call pg_restore
+
+#### Config SSH hosts (~/.ssh/config)
+> hkd config ssh --tsv-input input.tsv --output-file ~/.ssh/hkd_generated_ssh_config --key-root ~/.ssh/id_root --key-user ~/.ssh/id_non_root_users
 
 #### Checking tools used by house-keeper
 > hkd verify-tools
