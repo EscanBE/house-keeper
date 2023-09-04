@@ -71,8 +71,11 @@ var verifyToolsCmd = &cobra.Command{
 		checkToolPossiblyExists("screen", "sudo apt install screen -y", possiblyMissingOptionalTools)
 		checkToolPossiblyExists("wget", "sudo apt install wget -y", possiblyMissingOptionalTools)
 		checkToolPossiblyExists("jq", "sudo apt install jq -y", possiblyMissingOptionalTools)
+		//goland:noinspection SpellCheckingInspection
 		checkToolPossiblyExists("lz4", "sudo apt install snapd -y && sudo snap install lz4", possiblyMissingOptionalTools)
 		checkToolPossiblyExists("psql", "sudo apt install postgresql-client", possiblyMissingOptionalTools)
+		//goland:noinspection SpellCheckingInspection
+		checkToolPossiblyExists("rclone", "sudo -v ; curl https://rclone.org/install.sh | sudo bash", possiblyMissingOptionalTools)
 	},
 }
 
