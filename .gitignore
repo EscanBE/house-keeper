@@ -17,6 +17,9 @@ test/
 *.hkd-checksum
 hkd_generated_ssh_config
 
+# Local sensitive scripts
+gen-ssh-config.sh
+
 # Output of the go coverage tool, specifically when used with LiteIDE
 *.out
 
