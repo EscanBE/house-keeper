@@ -137,6 +137,7 @@ func configureSshConfigFile(_ *cobra.Command, _ []string) {
 		host := strings.TrimSpace(spl[0])
 		hostName := strings.TrimSpace(spl[1])
 		user := strings.TrimSpace(spl[2])
+
 		var comment string
 
 		if len(host) < 1 {
@@ -176,4 +177,6 @@ Host %s%s
 	if err != nil {
 		panic(errors.Wrap(err, "failed to write output SSH config file"))
 	}
+
+	fmt.Println("Output file:", sshConfigOutputFilePath)
 }
