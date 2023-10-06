@@ -10,11 +10,13 @@ import (
 	"os"
 	"path"
 	"path/filepath"
+	"regexp"
 	"strings"
 )
 
 const (
 	flagContains   = "contains"
+	flagRegex      = "regex"
 	flagSilent     = "silent"
 	flagSkip       = "skip"
 	flagDeleteFile = "delete"
@@ -46,6 +48,12 @@ func ListingCommands() *cobra.Command {
 		flagContains,
 		make([]string, 0),
 		fmt.Sprintf("print only files contains specific string in file name, can be repeated multiple times, eg: --%s abc --%s def", flagContains, flagContains),
+	)
+
+	cmd.PersistentFlags().String(
+		flagRegex,
+		"",
+		fmt.Sprintf("print only files which name satisfy regex pattern, eg: --%s '^backup_.+' (must quoted by single quotes)", flagRegex),
 	)
 
 	cmd.PersistentFlags().String(
@@ -100,6 +108,16 @@ func listFiles(cmd *cobra.Command, _ []string) {
 
 	containsString, _ := cmd.Flags().GetStringArray(flagContains)
 
+	regexPattern, _ := cmd.Flags().GetString(flagRegex)
+	var regex *regexp.Regexp
+	if len(regexPattern) > 0 {
+		var errRegex error
+		regex, errRegex = regexp.Compile(regexPattern)
+		if errRegex != nil {
+			panic(errors.Wrap(errRegex, fmt.Sprintf("failed to parse regex pattern provided by flag --%s (do you forgot quoted it with single quotes?)", flagRegex)))
+		}
+	}
+
 	workingDir := utils.ReadFlagWorkingDir(cmd)
 
 	files := goe.NewIEnumerable[string](listFilesWithinDir(workingDir)...)
@@ -113,6 +131,12 @@ func listFiles(cmd *cobra.Command, _ []string) {
 				})
 			}
 		}
+	}
+	if regex != nil {
+		files = files.Where(func(file string) bool {
+			_, fileName := path.Split(file)
+			return regex.MatchString(fileName)
+		})
 	}
 
 	if !files.Any() {
