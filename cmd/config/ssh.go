@@ -165,6 +165,16 @@ func configureSshConfigFile(_ *cobra.Command, _ []string) {
 	}
 	hostTracker := make(map[string]bool)
 	for _, line := range tsvLines.ToArray() {
+		if strings.HasPrefix(line, "#") {
+			fmt.Println("Skipped comment line:", line)
+			sshConfigContent += fmt.Sprintf(`
+%s
+`, line)
+			continue
+		}
+		if libutils.IsBlank(line) {
+			continue
+		}
 		spl := strings.SplitN(
 			regexReplaceContinousSpace.ReplaceAllString(strings.Replace(line, "\t", " ", -1), " "),
 			" ", 3,
