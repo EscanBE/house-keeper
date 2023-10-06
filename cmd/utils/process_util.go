@@ -13,14 +13,14 @@ func LaunchApp(appName string, args []string, envVars []string) int {
 }
 
 func LaunchAppWithOutputCallback(appName string, args []string, envVars []string, stdOutCallback1, stdErrCallBack1, stdOutCallback2, stdErrCallBack2 func(msg string)) int {
-	rsyncCmd := exec.Command(appName, args...)
+	launchCmd := exec.Command(appName, args...)
 
-	rsyncCmd.Env = envVars
-	stdout, _ := rsyncCmd.StdoutPipe()
-	stderr, _ := rsyncCmd.StderrPipe()
-	rsyncStdOutScanner := bufio.NewScanner(stdout)
-	rsyncStdErrScanner := bufio.NewScanner(stderr)
-	err := rsyncCmd.Start()
+	launchCmd.Env = envVars
+	stdout, _ := launchCmd.StdoutPipe()
+	stderr, _ := launchCmd.StderrPipe()
+	stdOutScanner := bufio.NewScanner(stdout)
+	stdErrScanner := bufio.NewScanner(stderr)
+	err := launchCmd.Start()
 	if err != nil {
 		_, _ = fmt.Fprintln(os.Stderr, "problem when starting", appName, err)
 	}
@@ -31,10 +31,10 @@ func LaunchAppWithOutputCallback(appName string, args []string, envVars []string
 	wg.Add(1)
 	go func() {
 		for {
-			oScan := rsyncStdOutScanner.Scan()
-			eScan := rsyncStdErrScanner.Scan()
+			oScan := stdOutScanner.Scan()
+			eScan := stdErrScanner.Scan()
 			if oScan {
-				msg := rsyncStdOutScanner.Text()
+				msg := stdOutScanner.Text()
 				fmt.Println(msg)
 				if stdOutCallback1 != nil {
 					stdOutCallback1(msg)
@@ -44,7 +44,7 @@ func LaunchAppWithOutputCallback(appName string, args []string, envVars []string
 				}
 			}
 			if eScan {
-				msg := rsyncStdErrScanner.Text()
+				msg := stdErrScanner.Text()
 				_, _ = fmt.Fprintln(os.Stderr, msg)
 				if stdErrCallBack1 != nil {
 					stdErrCallBack1(msg)
@@ -57,7 +57,7 @@ func LaunchAppWithOutputCallback(appName string, args []string, envVars []string
 				break
 			}
 		}
-		err = rsyncCmd.Wait()
+		err = launchCmd.Wait()
 		if err != nil {
 			_, _ = fmt.Fprintln(os.Stderr, "problem when waiting process", appName, err)
 			chanEc <- 1
