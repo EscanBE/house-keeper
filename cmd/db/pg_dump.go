@@ -131,11 +131,12 @@ func backupPgDatabase(cmd *cobra.Command, _ []string) {
 			panic(errors.Wrap(err, fmt.Sprintf("failed to read password file %s", passwordFile)))
 		}
 
-		if fip.Mode().Perm() != constants.FILE_PERMISSION_400 &&
-			fip.Mode().Perm() != constants.FILE_PERMISSION_600 &&
-			fip.Mode().Perm() != constants.FILE_PERMISSION_700 {
-			//goland:noinspection GoBoolExpressions
-			panic(fmt.Errorf("incorrect permission of password file, must be %s or %s or %s", constants.FILE_PERMISSION_400_STR, constants.FILE_PERMISSION_600_STR, constants.FILE_PERMISSION_700_STR))
+		fipPerm := fip.Mode().Perm()
+		errPerm := utils.ValidatePasswordFileMode(fipPerm)
+		if errPerm != nil {
+			fmt.Printf("Incorrect permission '%o' of password file: %s\n", fipPerm, errPerm)
+			fmt.Printf("Suggest setting permission to '%o'\n", constants.RECOMMENDED_FILE_PERMISSION)
+			os.Exit(1)
 		}
 
 		pgPassword := strings.TrimSpace(string(bz))

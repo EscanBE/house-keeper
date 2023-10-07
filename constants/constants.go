@@ -10,14 +10,7 @@ const (
 
 //goland:noinspection GoSnakeCaseUsage
 const (
-	FILE_PERMISSION_700     = 0o700
-	FILE_PERMISSION_700_STR = "700"
-
-	FILE_PERMISSION_600     = 0o600
-	FILE_PERMISSION_600_STR = "600"
-
-	FILE_PERMISSION_400     = 0o400
-	FILE_PERMISSION_400_STR = "400"
+	RECOMMENDED_FILE_PERMISSION = 0o600
 )
 
 //goland:noinspection GoSnakeCaseUsage
