@@ -1,6 +1,6 @@
 ## House Keeper
 #### A tool used by Escan members to manage system
-> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.7.6
+> go install -v github.com/EscanBE/house-keeper/cmd/hkd@v0.8.0
 
 ### Commands:
 
