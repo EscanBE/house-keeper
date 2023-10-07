@@ -8,6 +8,7 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
+	"reflect"
 	"strings"
 )
 
@@ -21,6 +22,8 @@ const (
 	flagPasswordFile          = "password-file"
 	flagToolOptions           = "tool-options"
 )
+
+const rsyncOptCopyDir = "-av"
 
 var defaultRsyncOptions = []string{"--human-readable", "--compress", "--stats"}
 
@@ -39,8 +42,9 @@ Note:
 - This is just a wrapper of rsync, you must know how to use rsync and got rsync installed in order to use this.
   Actual translated rsync command would look similar to:
   > /usr/bin/rsync --human-readable --compress --stats -e ssh "server:/var/logs/*.log" "/mnt/md0/backup/logs"
+- In case copy directory from local and omitted flag --%s, the argument '%s' will be passed to rsync by default to indicate coping directory.
 - When transfer from/to remote server, you must connect to that remote server at least one time before to perform host key verification (one time action) because the transfer will be performed via ssh.
-`, constants.BINARY_NAME, constants.BINARY_NAME),
+`, constants.BINARY_NAME, constants.BINARY_NAME, flagToolOptions, rsyncOptCopyDir),
 		Args: cobra.ExactArgs(2),
 		Run:  remoteTransferFile,
 	}
@@ -135,14 +139,17 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 		}
 	}
 
+	var isSrcLocalDir bool
+
 	if !isSrcRemote {
-		_, err := os.Stat(src)
+		file, err := os.Stat(src)
 		if os.IsNotExist(err) {
 			panic(fmt.Errorf("local source file/dir does not exists: %s", src))
 		}
 		if err != nil {
 			panic(errors.Wrap(err, fmt.Sprintf("problem while checking local source file %s", src)))
 		}
+		isSrcLocalDir = file.IsDir()
 	}
 
 	if !isDestRemote {
@@ -177,6 +184,11 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	options, _ := cmd.Flags().GetStringSlice(flagToolOptions)
 	if len(options) < 1 {
 		options = defaultRsyncOptions
+	}
+
+	if isSrcLocalDir && reflect.DeepEqual(options, defaultRsyncOptions) {
+		// in case copy from local dir, supply flag '-av'
+		options = append(options, rsyncOptCopyDir)
 	}
 
 	logFile, _ := cmd.Flags().GetString(flagLogFile)
