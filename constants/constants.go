@@ -19,3 +19,8 @@ const (
 	ENV_RSYNC_PASSWORD = "RSYNC_PASSWORD"
 	ENV_SSHPASS        = "SSHPASS"
 )
+
+//goland:noinspection GoSnakeCaseUsage
+const (
+	PREDEFINED_ALIAS_FILE_NAME = ".hkd_alias"
+)
