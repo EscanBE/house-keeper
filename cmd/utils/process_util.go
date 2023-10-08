@@ -3,6 +3,7 @@ package utils
 import (
 	"bufio"
 	"fmt"
+	libutils "github.com/EscanBE/go-lib/utils"
 	"os"
 	"os/exec"
 	"sync"
@@ -45,7 +46,7 @@ func LaunchAppWithOutputCallback(appName string, args []string, envVars []string
 			}
 			if eScan {
 				msg := stdErrScanner.Text()
-				_, _ = fmt.Fprintln(os.Stderr, msg)
+				libutils.PrintlnStdErr(msg)
 				if stdErrCallBack1 != nil {
 					stdErrCallBack1(msg)
 				}
