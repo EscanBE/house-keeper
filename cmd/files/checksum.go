@@ -3,6 +3,7 @@ package files
 import (
 	"fmt"
 	"github.com/EscanBE/go-ienumerable/goe"
+	libutils "github.com/EscanBE/go-lib/utils"
 	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
@@ -232,18 +233,18 @@ func checksumFile(cmd *cobra.Command, args []string) {
 			outputChecksumCacheCb = nil
 		}
 
-		exitCode := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb, outputChecksumCacheCb, nil)
-		if exitCode != 0 {
-			fmt.Println("failed to checksum file", file)
+		ec := utils.LaunchAppWithOutputCallback(toolName, []string{file}, os.Environ(), outputCb, outputCb, outputChecksumCacheCb, nil)
+		if ec != 0 {
+			libutils.PrintlnStdErr("failed to checksum file", file)
 
 			if cacheAndTrust {
 				err := os.Remove(checksumCacheFilePath)
 				if err != nil {
-					fmt.Println("failed to remove checksum cache file", checksumCacheFilePath)
+					libutils.PrintlnStdErr("failed to remove checksum cache file", checksumCacheFilePath)
 				}
 			}
 
-			os.Exit(exitCode)
+			os.Exit(ec)
 		}
 	}
 }

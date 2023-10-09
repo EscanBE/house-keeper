@@ -4,11 +4,15 @@ import (
 	"bufio"
 	"fmt"
 	libutils "github.com/EscanBE/go-lib/utils"
+	"os"
 	"os/exec"
 	"sync"
 )
 
-func LaunchApp(appName string, args []string, envVars []string) int {
+func LaunchApp(appName string, args []string, envVars []string, directStd bool) int {
+	if directStd {
+		return LaunchAppWithDirectStd(appName, args, envVars)
+	}
 	return LaunchAppWithOutputCallback(appName, args, envVars, nil, nil, nil, nil)
 }
 
@@ -75,4 +79,20 @@ func LaunchAppWithOutputCallback(appName string, args []string, envVars []string
 
 	wg.Wait()
 	return <-chanEc
+}
+
+func LaunchAppWithDirectStd(appName string, args []string, envVars []string) int {
+	launchCmd := exec.Command(appName, args...)
+	if len(envVars) > 0 {
+		launchCmd.Env = envVars
+	}
+	launchCmd.Stdin = os.Stdin
+	launchCmd.Stdout = os.Stdout
+	launchCmd.Stderr = os.Stderr
+	err := launchCmd.Run()
+	if err != nil {
+		libutils.PrintfStdErr("problem when running process %s: %s\n", appName, err.Error())
+		return 1
+	}
+	return 0
 }
