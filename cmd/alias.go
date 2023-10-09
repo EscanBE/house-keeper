@@ -5,10 +5,10 @@ import (
 	"fmt"
 	"github.com/EscanBE/go-ienumerable/goe"
 	libutils "github.com/EscanBE/go-lib/utils"
-	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/spf13/cobra"
 	"os"
+	"os/exec"
 	"path"
 	"regexp"
 	"strings"
@@ -93,13 +93,15 @@ var aliasCmd = &cobra.Command{
 
 		fmt.Println("Executing...")
 
-		ec := utils.LaunchApp("/bin/bash", []string{"-c", joinedCommand}, nil)
-
-		if ec != 0 {
-			fmt.Println("Exited with status code:", ec)
+		proc := exec.Command("/bin/bash", "-c", joinedCommand)
+		proc.Stdin = os.Stdin
+		proc.Stdout = os.Stdout
+		proc.Stderr = os.Stderr
+		err := proc.Run()
+		if err != nil {
+			libutils.PrintlnStdErr("problem when run", err)
+			os.Exit(1)
 		}
-
-		os.Exit(ec)
 	},
 }
 
@@ -110,7 +112,7 @@ func registerStartupPredefinedAliases() {
 	// Manage Evmos nodes
 	registerPredefinedAlias("esrs", []string{"sudo", "systemctl", "restart", "evmosd"}, nil)
 	registerPredefinedAlias("esstop", []string{"sudo", "systemctl", "stop", "evmosd"}, nil)
-	registerPredefinedAlias("esl [since]", []string{"sudo", "journalctl", "--no-pager", "-u", "evmosd"}, &genericAlterJournalctl)
+	registerPredefinedAlias("esl [since]", []string{"sudo", "journalctl", "-fu", "evmosd"}, &genericAlterJournalctl)
 	if errGetUserHomeDir != nil {
 		fmt.Println("ERR: Failed to register predefined alias esreset")
 	} else {
@@ -120,15 +122,15 @@ func registerStartupPredefinedAliases() {
 	// Manage indexer
 	registerPredefinedAlias("ecrs", []string{"sudo", "systemctl", "restart", "crawld"}, nil)
 	registerPredefinedAlias("ecstop", []string{"sudo", "systemctl", "stop", "crawld"}, nil)
-	registerPredefinedAlias("ecl [since]", []string{"sudo", "journalctl", "--no-pager", "-u", "crawld"}, &genericAlterJournalctl)
+	registerPredefinedAlias("ecl [since]", []string{"sudo", "journalctl", "-fu", "crawld"}, &genericAlterJournalctl)
 
 	// Manage proxy
 	registerPredefinedAlias("eprs", []string{"sudo", "systemctl", "restart", "epod"}, nil)
 	registerPredefinedAlias("epstop", []string{"sudo", "systemctl", "stop", "epod"}, nil)
-	registerPredefinedAlias("epl [since]", []string{"sudo", "journalctl", "--no-pager", "-u", "epod"}, &genericAlterJournalctl)
+	registerPredefinedAlias("epl [since]", []string{"sudo", "journalctl", "-fu", "epod"}, &genericAlterJournalctl)
 
 	// Read logging
-	registerPredefinedAlias("log [service] [since]", []string{"sudo", "journalctl", "--no-pager"}, &aliasLogHandler)
+	registerPredefinedAlias("log [service] [since]", []string{"sudo", "journalctl"}, &aliasLogHandler)
 
 	// Git
 	registerPredefinedAlias("pull [branch] [branch2] [...]", []string{"git", "fetch", "--all", "&&", "git", "checkout", "main", "&&", "git", "pull"}, &gitPullHandler)
@@ -136,7 +138,7 @@ func registerStartupPredefinedAliases() {
 
 var aliasLogHandler commandAlter = func(_, args []string) []string {
 	service := args[0]
-	command := []string{"sudo", "journalctl", "--no-pager", "-u", service}
+	command := []string{"sudo", "journalctl", "-fu", service}
 
 	if len(args) > 1 {
 		command = genericAlterJournalctl(command, args[1:])
