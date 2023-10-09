@@ -191,6 +191,12 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 		options = append(options, rsyncOptCopyDir)
 	}
 
+	if !isSrcRemote && !isDestRemote { // no compress on local to local transfer
+		options = goe.NewIEnumerable(options...).Where(func(option string) bool {
+			return !strings.EqualFold(option, "--compress")
+		}).ToArray()
+	}
+
 	logFile, _ := cmd.Flags().GetString(flagLogFile)
 	if len(logFile) > 0 {
 		duplicated := goe.NewIEnumerable[string](options...).AnyBy(func(flag string) bool {
