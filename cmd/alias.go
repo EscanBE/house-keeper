@@ -129,6 +129,9 @@ func registerStartupPredefinedAliases() {
 
 	// Read logging
 	registerPredefinedAlias("log [service] [since]", []string{"sudo", "journalctl"}, &aliasLogHandler)
+
+	// Git
+	registerPredefinedAlias("pull [branch] [branch2] [...]", []string{"git", "fetch", "--all", "&&", "git", "checkout", "main", "&&", "git", "pull"}, &gitPullHandler)
 }
 
 var aliasLogHandler commandAlter = func(_, args []string) []string {
@@ -144,6 +147,16 @@ var aliasLogHandler commandAlter = func(_, args []string) []string {
 
 var genericAlterJournalctl commandAlter = func(command, args []string) []string {
 	return append(command, "--since", "'"+strings.Join(args, " ")+"'")
+}
+
+var gitPullHandler commandAlter = func(_, args []string) []string {
+	command := []string{"git", "fetch", "--all"}
+
+	for _, branch := range args {
+		command = append(command, "&&", "git", "checkout", branch, "&&", "git", "pull")
+	}
+
+	return command
 }
 
 func registerPredefinedAliasesFromFile() {
