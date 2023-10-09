@@ -9,6 +9,7 @@ import (
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
+	"os/user"
 	"path"
 	"regexp"
 	"strings"
@@ -41,6 +42,9 @@ var aliasCmd = &cobra.Command{
 			fmt.Println("Registered aliases:")
 			for _, alias := range goe.NewIEnumerable[string](libutils.GetKeys(predefinedAliases)...).Order().GetOrderedEnumerable().ToArray() {
 				pa := predefinedAliases[alias]
+				if pa.overridden {
+					fmt.Printf(" *overriden*")
+				}
 				fmt.Printf(lineFormat, pa.use, strings.Join(pa.command, " "))
 			}
 			fmt.Printf("Alias can be customized by adding into ~/%s (TSV format with each line content \"<alias><tab><command>\")\n", constants.PREDEFINED_ALIAS_FILE_NAME)
@@ -107,33 +111,88 @@ var aliasCmd = &cobra.Command{
 
 //goland:noinspection SpellCheckingInspection
 func registerStartupPredefinedAliases() {
+	currentUser, errGetUser := user.Current()
+	if errGetUser != nil {
+		libutils.PrintlnStdErr("ERR: failed to get current user:", errGetUser.Error())
+		os.Exit(1)
+	}
 	home, errGetUserHomeDir := os.UserHomeDir()
-
-	// Manage Evmos nodes
-	registerPredefinedAlias("esrs", []string{"sudo", "systemctl", "restart", "evmosd"}, nil)
-	registerPredefinedAlias("esstop", []string{"sudo", "systemctl", "stop", "evmosd"}, nil)
-	registerPredefinedAlias("esl [since]", []string{"sudo", "journalctl", "-fu", "evmosd"}, &genericAlterJournalctl)
 	if errGetUserHomeDir != nil {
-		fmt.Println("ERR: Failed to register predefined alias esreset")
-	} else {
-		registerPredefinedAlias("esreset", []string{"evmosd", "tendermint", "unsafe-reset-all", "--home", path.Join(home, ".evmosd"), "--keep-addr-book"}, nil)
+		libutils.PrintlnStdErr("ERR: failed to get home directory:", errGetUserHomeDir.Error())
+		os.Exit(1)
+	}
+	isUserRoot := currentUser.Username == "root"
+
+	registerPredefinedAliasForNode := func(binaryName, prefix string) {
+		hasBinary := hasBinaryName(binaryName)
+		if hasBinary || isExistsServiceFile(binaryName) {
+			registerPredefinedAlias(fmt.Sprintf("%srs", prefix), []string{"sudo", "systemctl", "restart", binaryName}, nil)
+			registerPredefinedAlias(fmt.Sprintf("%sstop", prefix), []string{"sudo", "systemctl", "stop", binaryName}, nil)
+			registerPredefinedAlias(fmt.Sprintf("%sl [?since]", prefix), []string{"sudo", "journalctl", "-fu", binaryName}, &genericAlterJournalctl)
+		}
+		if !isUserRoot && hasBinary {
+			nodeHome := path.Join(home, "."+binaryName)
+			if _, err := os.Stat(nodeHome); err == nil {
+
+				entries, err := os.ReadDir(nodeHome)
+				if err == nil {
+					var totalSize int64
+					for _, entry := range entries {
+						if entry.IsDir() {
+							continue
+						}
+						file, err := entry.Info()
+						if err == nil {
+							totalSize += file.Size()
+						}
+					}
+
+					const notSupportCommandResetIfDataSizeGETerrabyte = 1
+					const notSupportCommandResetIfDataSizeGEBytes = notSupportCommandResetIfDataSizeGETerrabyte * 1_000_000_000_000
+					resetAlias := fmt.Sprintf("%sreset", prefix)
+					if totalSize >= notSupportCommandResetIfDataSizeGEBytes {
+						libutils.PrintfStdErr("WARN: %s is not supported for node with data size >= %d TB\n", resetAlias, notSupportCommandResetIfDataSizeGETerrabyte)
+					} else {
+						registerPredefinedAlias(resetAlias, []string{binaryName, "tendermint", "unsafe-reset-all", "--home", nodeHome, "--keep-addr-book"}, nil)
+					}
+				}
+			}
+		}
 	}
 
+	// Manage Evmos nodes
+	registerPredefinedAliasForNode("evmosd", "es")
+
+	// Manage Dymension nodes
+	registerPredefinedAliasForNode("dymd", "dym")
+
+	// Manage Ethermint dev nodes
+	registerPredefinedAliasForNode("ethermintd", "eth")
+
+	// Manage CosmosHub nodes
+	registerPredefinedAliasForNode("gaid", "ga")
+
 	// Manage indexer
-	registerPredefinedAlias("ecrs", []string{"sudo", "systemctl", "restart", "crawld"}, nil)
-	registerPredefinedAlias("ecstop", []string{"sudo", "systemctl", "stop", "crawld"}, nil)
-	registerPredefinedAlias("ecl [since]", []string{"sudo", "journalctl", "-fu", "crawld"}, &genericAlterJournalctl)
+	if hasBinaryName("crawld") || isExistsServiceFile("crawld") {
+		registerPredefinedAlias("ecrs", []string{"sudo", "systemctl", "restart", "crawld"}, nil)
+		registerPredefinedAlias("ecstop", []string{"sudo", "systemctl", "stop", "crawld"}, nil)
+		registerPredefinedAlias("ecl [?since]", []string{"sudo", "journalctl", "-fu", "crawld"}, &genericAlterJournalctl)
+	}
 
 	// Manage proxy
-	registerPredefinedAlias("eprs", []string{"sudo", "systemctl", "restart", "epod"}, nil)
-	registerPredefinedAlias("epstop", []string{"sudo", "systemctl", "stop", "epod"}, nil)
-	registerPredefinedAlias("epl [since]", []string{"sudo", "journalctl", "-fu", "epod"}, &genericAlterJournalctl)
+	if hasBinaryName("epod") || isExistsServiceFile("epod") {
+		registerPredefinedAlias("eprs", []string{"sudo", "systemctl", "restart", "epod"}, nil)
+		registerPredefinedAlias("epstop", []string{"sudo", "systemctl", "stop", "epod"}, nil)
+		registerPredefinedAlias("epl [?since]", []string{"sudo", "journalctl", "-fu", "epod"}, &genericAlterJournalctl)
+	}
 
 	// Read logging
-	registerPredefinedAlias("log [service] [since]", []string{"sudo", "journalctl"}, &aliasLogHandler)
+	registerPredefinedAlias("log [?service] [?since]", []string{"sudo", "journalctl"}, &aliasLogHandler)
 
 	// Git
-	registerPredefinedAlias("pull [branch] [branch2] [...]", []string{"git", "fetch", "--all", "&&", "git", "checkout", "main", "&&", "git", "pull"}, &gitPullHandler)
+	if _, err := os.Stat(".git"); err == nil {
+		registerPredefinedAlias("pull [?branch] [?branch2] [...]", []string{"git", "fetch", "--all", "&&", "git", "checkout", "main", "&&", "git", "pull"}, &gitPullHandler)
+	}
 }
 
 var aliasLogHandler commandAlter = func(_, args []string) []string {
@@ -216,6 +275,7 @@ func registerPredefinedAliasesFromFile() {
 		command := spl[1:]
 		if pa, found := predefinedAliases[alias]; found {
 			pa.command = command
+			pa.use = alias
 			pa.overridden = true
 			predefinedAliases[alias] = pa
 		} else {
@@ -234,6 +294,22 @@ func registerPredefinedAlias(use string, defaultCommand []string, alter *command
 		alter:   alter,
 	}
 	longestUseDesc = libutils.MaxInt(longestUseDesc, len(use))
+}
+
+func hasBinaryName(binaryName string) bool {
+	_, err := exec.LookPath(binaryName)
+	return err == nil
+}
+
+func isExistsServiceFile(serviceName string) bool {
+	file, err := os.Stat(path.Join("/etc/systemd/system", serviceName+".service"))
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false
+		}
+		return false // treat as not
+	}
+	return !file.IsDir()
 }
 
 func init() {
