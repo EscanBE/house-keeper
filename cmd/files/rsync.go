@@ -3,11 +3,13 @@ package files
 import (
 	"fmt"
 	"github.com/EscanBE/go-ienumerable/goe"
+	libutils "github.com/EscanBE/go-lib/utils"
 	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
+	"os/exec"
 	"strings"
 )
 
@@ -20,6 +22,7 @@ const (
 	flagLogFile               = "log-file"
 	flagPasswordFile          = "password-file"
 	flagToolOptions           = "tool-options"
+	flagDirectStd             = "direct-std"
 )
 
 const rsyncOptCopyDir = "--recursive"
@@ -102,6 +105,12 @@ Note:
 		"by default sshpass (if sshpass exists) passes password. If you are authenticating using passphrase, program will be hang (search phrase not found), supply this flag to indicate and would fix it",
 	)
 
+	cmd.PersistentFlags().Bool(
+		flagDirectStd,
+		false,
+		"direct assign stdin+stdout+stderr to process, for testing purpose, will remove in the future",
+	)
+
 	return cmd
 }
 
@@ -115,6 +124,8 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	if len(dest) < 1 {
 		panic("destination file/dir is empty")
 	}
+
+	directStd, _ := cmd.Flags().GetBool(flagDirectStd)
 
 	isSrcRemote := strings.Contains(src, ":")
 	isDestRemote := strings.Contains(dest, ":")
@@ -215,13 +226,13 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	}
 
 	if !isSrcRemote && !isDestRemote {
-		launchApp(toolName, append(options, src, dest))
+		launchApp(toolName, append(options, src, dest), nil, directStd)
 		return
 	}
 
 	noPassword, _ := cmd.Flags().GetBool(flagNoPassword)
 	if noPassword {
-		launchApp(toolName, append(options, "--rsh", "ssh", src, dest))
+		launchApp(toolName, append(options, "--rsh", "ssh", src, dest), nil, directStd)
 		return
 	}
 
@@ -265,13 +276,13 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 			cmdArgs = append(cmdArgs, options...)
 			cmdArgs = append(cmdArgs, "--rsh", "ssh", src, dest)
 
-			launchApp("sshpass", cmdArgs)
+			launchApp("sshpass", cmdArgs, nil, directStd)
 			return
 		}
 
 		fmt.Println("Using environment variable", constants.ENV_RSYNC_PASSWORD, "to passing password from password file to rsync")
 		fmt.Println("**WARNING: if remote machine does not have rsync service running, password prompt still appears")
-		launchApp(toolName, append(options, "--rsh", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
+		launchApp(toolName, append(options, "--rsh", "ssh", src, dest), []string{fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password)}, directStd)
 		return
 	}
 
@@ -309,7 +320,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 		cmdArgs = append(cmdArgs, options...)
 		cmdArgs = append(cmdArgs, "--rsh", "ssh", src, dest)
 
-		launchApp("sshpass", cmdArgs, fmt.Sprintf("%s=%s", constants.ENV_SSHPASS, password))
+		launchApp("sshpass", cmdArgs, []string{fmt.Sprintf("%s=%s", constants.ENV_SSHPASS, password)}, directStd)
 		return
 	}
 
@@ -318,20 +329,38 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	}
 	fmt.Println("Using environment variable", constants.ENV_RSYNC_PASSWORD, "to passing password to rsync")
 	fmt.Println("**WARNING: if remote machine does not have rsync service running, password prompt still appears")
-	launchApp(toolName, append(options, "--rsh", "ssh", src, dest), fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password))
+	launchApp(toolName, append(options, "--rsh", "ssh", src, dest), []string{fmt.Sprintf("%s=%s", constants.ENV_RSYNC_PASSWORD, password)}, directStd)
 }
 
-func launchApp(toolName string, args []string, additionalEnvVars ...string) {
+func launchApp(toolName string, args []string, additionalEnvVars []string, directStd bool) {
 	fmt.Println("Rsync arguments:\n", toolName, strings.Join(args, " "))
 	fmt.Println("Begin rsync at", utils.NowStr())
 
-	exitCode := utils.LaunchApp(toolName, args, append(os.Environ(), additionalEnvVars...))
-	if exitCode != 0 {
-		fmt.Println("Failed rsync at", utils.NowStr())
-		os.Exit(exitCode)
+	envVars := os.Environ()
+	if len(additionalEnvVars) > 0 {
+		envVars = append(envVars, additionalEnvVars...)
 	}
 
-	fmt.Println("Finished rsync at", utils.NowStr())
+	defer fmt.Println("Finished rsync at", utils.NowStr())
+
+	if directStd {
+		proc := exec.Command(toolName, args...)
+		proc.Env = envVars
+		proc.Stdin = os.Stdin
+		proc.Stdout = os.Stdout
+		proc.Stderr = os.Stderr
+		err := proc.Run()
+		if err != nil {
+			libutils.PrintlnStdErr("rsync error:", err)
+			os.Exit(1)
+		}
+	} else {
+		exitCode := utils.LaunchApp(toolName, args, envVars)
+		if exitCode != 0 {
+			fmt.Println("Failed rsync at", utils.NowStr())
+			os.Exit(exitCode)
+		}
+	}
 }
 
 func isOrContainsRsyncRecursiveFlag(option string) bool {
