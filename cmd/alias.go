@@ -96,7 +96,7 @@ var aliasCmd = &cobra.Command{
 		var envVars []string
 		envVars = append(envVars, "SYSTEMD_PAGER=") // disable systemd pager
 
-		ec := utils.LaunchApp("/bin/bash", []string{"-c", joinedCommand}, nil)
+		ec := utils.LaunchApp("/bin/bash", []string{"-c", joinedCommand}, envVars)
 
 		if ec != 0 {
 			fmt.Println("Exited with status code:", ec)
