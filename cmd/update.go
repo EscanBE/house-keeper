@@ -35,7 +35,8 @@ var updateCmd = &cobra.Command{
 			os.Exit(ec)
 		}
 
-		fmt.Println("Launching", constants.BINARY_NAME, "to double check:")
+		fmt.Println("Updated", constants.BINARY_NAME)
+		fmt.Printf("%s => ", constants.VERSION)
 		_ = utils.LaunchApp(constants.BINARY_NAME, []string{"version"}, nil)
 	},
 }
