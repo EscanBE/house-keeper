@@ -63,7 +63,17 @@ Notes:
 #### Config SSH hosts (~/.ssh/config)
 > hkd config ssh --tsv-input input.tsv --output-file ~/.ssh/hkd_generated_ssh_config --key-root ~/.ssh/id_root --key-user ~/.ssh/id_non_root_users_1 --key-per-user special_user,/home/ubuntu/.ssh/id_special_user
 
+#### Command aliases
+House-keeper defined a set of command aliases to help your life easier
+- Listing supported alias by: `hkd a`
+- Invoke alias execution by: `hkd a [alias]`
+
+_Defined your own aliases by create a TSV `~/.hkd_alias`_
+
 #### Checking tools used by house-keeper
 > hkd verify-tools
+
+#### Update house-keeper
+> hkd update [optional version]
 
 ###### This project uses Go Application Template v4.3 (by Escan)
