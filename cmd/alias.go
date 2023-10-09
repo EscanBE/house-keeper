@@ -102,6 +102,12 @@ var aliasCmd = &cobra.Command{
 			libutils.PrintlnStdErr("problem when run", err)
 			os.Exit(1)
 		}
+
+		err = proc.Wait()
+		if err != nil {
+			libutils.PrintlnStdErr("problem when wait", err)
+			os.Exit(1)
+		}
 	},
 }
 
