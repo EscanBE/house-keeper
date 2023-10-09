@@ -200,7 +200,7 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 			})
 
 			if isDefaultOpts {
-				if !ieOptions.AnyBy(isOrContainsRecursiveFlag) {
+				if !ieOptions.AnyBy(isOrContainsRsyncRecursiveFlag) {
 					// in case copy from local dir, supply flag '--recursive'
 					ieOptions = ieOptions.Append(rsyncOptCopyDir)
 				}
@@ -341,11 +341,11 @@ func launchApp(toolName string, args []string, additionalEnvVars ...string) {
 	fmt.Println("Finished rsync at", utils.NowStr())
 }
 
-func isOrContainsRecursiveFlag(option string) bool {
+func isOrContainsRsyncRecursiveFlag(option string) bool {
 	if strings.HasPrefix(option, "--") {
-		return strings.EqualFold(option, "--recursive")
+		return strings.EqualFold(option, "--recursive") || strings.EqualFold(option, "--archive")
 	} else if strings.HasPrefix(option, "-") {
-		return strings.Contains(option, "r")
+		return strings.Contains(option, "r") || strings.Contains(option, "a")
 	} else {
 		return false
 	}

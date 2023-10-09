@@ -2,7 +2,7 @@ package files
 
 import "testing"
 
-func Test_isOrContainsRecursiveFlag(t *testing.T) {
+func Test_isOrContainsRsyncRecursiveFlag(t *testing.T) {
 	tests := []struct {
 		option string
 		want   bool
@@ -12,7 +12,15 @@ func Test_isOrContainsRecursiveFlag(t *testing.T) {
 			want:   false,
 		},
 		{
+			option: "archive",
+			want:   false,
+		},
+		{
 			option: "r",
+			want:   false,
+		},
+		{
+			option: "a",
 			want:   false,
 		},
 		{
@@ -20,7 +28,19 @@ func Test_isOrContainsRecursiveFlag(t *testing.T) {
 			want:   true,
 		},
 		{
+			option: "--archive",
+			want:   true,
+		},
+		{
 			option: "-r",
+			want:   true,
+		},
+		{
+			option: "-a",
+			want:   true,
+		},
+		{
+			option: "-av",
 			want:   true,
 		},
 		{
@@ -32,7 +52,15 @@ func Test_isOrContainsRecursiveFlag(t *testing.T) {
 			want:   false,
 		},
 		{
+			option: "--a",
+			want:   false,
+		},
+		{
 			option: "--recursive-mixed",
+			want:   false,
+		},
+		{
+			option: "--archive-mixed",
 			want:   false,
 		},
 		{
@@ -42,8 +70,8 @@ func Test_isOrContainsRecursiveFlag(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.option, func(t *testing.T) {
-			if got := isOrContainsRecursiveFlag(tt.option); got != tt.want {
-				t.Errorf("isOrContainsRecursiveFlag() = %v, want %v", got, tt.want)
+			if got := isOrContainsRsyncRecursiveFlag(tt.option); got != tt.want {
+				t.Errorf("isOrContainsRsyncRecursiveFlag() = %v, want %v", got, tt.want)
 			}
 		})
 	}
