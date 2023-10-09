@@ -15,6 +15,7 @@ import (
 )
 
 var predefinedAliases map[string]predefinedAlias
+var longestUseDesc int
 
 /*
 Sample content for alias file .hkd_alias:
@@ -24,9 +25,10 @@ hkd a say-hello
 
 // aliasCmd represents the 'a' command, it executes commands based on pre-defined input alias
 var aliasCmd = &cobra.Command{
-	Use:   "a [alias]",
-	Short: "Execute commands based on pre-defined alias",
-	Args:  cobra.MinimumNArgs(0),
+	Use:     "a [alias]",
+	Aliases: []string{"alias"},
+	Short:   "Execute commands based on pre-defined alias",
+	Args:    cobra.MinimumNArgs(0),
 	Run: func(cmd *cobra.Command, args []string) {
 		predefinedAliases = make(map[string]predefinedAlias)
 
@@ -34,10 +36,12 @@ var aliasCmd = &cobra.Command{
 		registerPredefinedAliasesFromFile()
 
 		if len(args) < 1 {
+			lineFormat := " %-" + fmt.Sprintf("%d", longestUseDesc+1) + "s: %s\n"
+
 			fmt.Println("Registered aliases:")
 			for _, alias := range goe.NewIEnumerable[string](libutils.GetKeys(predefinedAliases)...).Order().GetOrderedEnumerable().ToArray() {
 				pa := predefinedAliases[alias]
-				fmt.Printf(" %-12s: %s\n", pa.alias, strings.Join(pa.command, " "))
+				fmt.Printf(lineFormat, pa.use, strings.Join(pa.command, " "))
 			}
 			fmt.Printf("Alias can be customized by adding into ~/%s (TSV format with each line content \"<alias><tab><command>\")\n", constants.PREDEFINED_ALIAS_FILE_NAME)
 			return
@@ -51,8 +55,8 @@ var aliasCmd = &cobra.Command{
 		}
 
 		command := pa.command
-		if pa.alter != nil {
-			command = (*pa.alter)(command)
+		if len(args) > 1 && pa.alter != nil {
+			command = (*pa.alter)(command, args[1:])
 		}
 
 		if len(command) < 1 {
@@ -106,7 +110,7 @@ func registerStartupPredefinedAliases() {
 	// Manage Evmos nodes
 	registerPredefinedAlias("esrs", []string{"sudo", "systemctl", "restart", "evmosd"}, nil)
 	registerPredefinedAlias("esstop", []string{"sudo", "systemctl", "stop", "evmosd"}, nil)
-	registerPredefinedAlias("esl", []string{"sudo", "journalctl", "-fu", "evmosd"}, nil)
+	registerPredefinedAlias("esl [since]", []string{"sudo", "journalctl", "-fu", "evmosd"}, &genericAlterJournalctl)
 	if errGetUserHomeDir != nil {
 		fmt.Println("ERR: Failed to register predefined alias esreset")
 	} else {
@@ -116,12 +120,30 @@ func registerStartupPredefinedAliases() {
 	// Manage indexer
 	registerPredefinedAlias("ecrs", []string{"sudo", "systemctl", "restart", "crawld"}, nil)
 	registerPredefinedAlias("ecstop", []string{"sudo", "systemctl", "stop", "crawld"}, nil)
-	registerPredefinedAlias("ecl", []string{"sudo", "journalctl", "-fu", "crawld"}, nil)
+	registerPredefinedAlias("ecl [since]", []string{"sudo", "journalctl", "-fu", "crawld"}, &genericAlterJournalctl)
 
 	// Manage proxy
 	registerPredefinedAlias("eprs", []string{"sudo", "systemctl", "restart", "epod"}, nil)
 	registerPredefinedAlias("epstop", []string{"sudo", "systemctl", "stop", "epod"}, nil)
-	registerPredefinedAlias("epl", []string{"sudo", "journalctl", "-fu", "epod"}, nil)
+	registerPredefinedAlias("epl [since]", []string{"sudo", "journalctl", "-fu", "epod"}, &genericAlterJournalctl)
+
+	// Read logging
+	registerPredefinedAlias("log [service] [since]", []string{"sudo", "journalctl"}, &aliasLogHandler)
+}
+
+var aliasLogHandler commandAlter = func(_, args []string) []string {
+	service := args[0]
+	command := []string{"sudo", "journalctl", "-fu", service}
+
+	if len(args) > 1 {
+		command = genericAlterJournalctl(command, args[1:])
+	}
+
+	return command
+}
+
+var genericAlterJournalctl commandAlter = func(command, args []string) []string {
+	return append(command, "--since", "'"+strings.Join(args, " ")+"'")
 }
 
 func registerPredefinedAliasesFromFile() {
@@ -187,12 +209,16 @@ func registerPredefinedAliasesFromFile() {
 	}
 }
 
-func registerPredefinedAlias(alias string, defaultCommand []string, alter *commandAlter) {
+func registerPredefinedAlias(use string, defaultCommand []string, alter *commandAlter) {
+	spl := strings.Split(use, " ")
+	alias := spl[0]
 	predefinedAliases[alias] = predefinedAlias{
 		alias:   alias,
+		use:     use,
 		command: defaultCommand,
 		alter:   alter,
 	}
+	longestUseDesc = libutils.MaxInt(longestUseDesc, len(use))
 }
 
 func init() {
@@ -201,9 +227,10 @@ func init() {
 
 type predefinedAlias struct {
 	alias      string
+	use        string
 	command    []string
 	alter      *commandAlter
 	overridden bool
 }
 
-type commandAlter func(args []string) []string
+type commandAlter func(command, args []string) []string
