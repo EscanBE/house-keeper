@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
-	"reflect"
 	"strings"
 )
 
@@ -42,9 +41,9 @@ Note:
 - This is just a wrapper of rsync, you must know how to use rsync and got rsync installed in order to use this.
   Actual translated rsync command would look similar to:
   > /usr/bin/rsync --human-readable --compress --stats -e ssh "server:/var/logs/*.log" "/mnt/md0/backup/logs"
-- In case copy directory from local and omitted flag --%s, the argument '%s' will be passed to rsync by default to indicate coping directory.
+- In case copy directory from local, the argument '%s' will be passed to rsync to indicate coping directory.
 - When transfer from/to remote server, you must connect to that remote server at least one time before to perform host key verification (one time action) because the transfer will be performed via ssh.
-`, constants.BINARY_NAME, constants.BINARY_NAME, flagToolOptions, rsyncOptCopyDir),
+`, constants.BINARY_NAME, constants.BINARY_NAME, rsyncOptCopyDir),
 		Args: cobra.ExactArgs(2),
 		Run:  remoteTransferFile,
 	}
@@ -189,22 +188,16 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 	if isSrcLocalDir {
 		ieOptions := goe.NewIEnumerable(options...)
 
-		isDefaultOpts := reflect.DeepEqual(options, defaultRsyncOptions)
-
-		if isDestRemote {
-			// ignore
-		} else {
+		if !isDestRemote {
 			// local to local transfer => remove compress flag
 			ieOptions = ieOptions.Where(func(option string) bool {
 				return !strings.EqualFold(option, "--compress")
 			})
+		}
 
-			if isDefaultOpts {
-				if !ieOptions.AnyBy(isOrContainsRsyncRecursiveFlag) {
-					// in case copy from local dir, supply flag '--recursive'
-					ieOptions = ieOptions.Append(rsyncOptCopyDir)
-				}
-			}
+		if !ieOptions.AnyBy(isOrContainsRsyncRecursiveFlag) {
+			// in case copy from local dir, supply flag '--recursive'
+			ieOptions = ieOptions.Append(rsyncOptCopyDir)
 		}
 
 		options = ieOptions.ToArray()
