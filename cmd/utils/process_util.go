@@ -4,7 +4,6 @@ import (
 	"bufio"
 	"fmt"
 	libutils "github.com/EscanBE/go-lib/utils"
-	"os"
 	"os/exec"
 	"sync"
 )
@@ -17,13 +16,19 @@ func LaunchAppWithOutputCallback(appName string, args []string, envVars []string
 	launchCmd := exec.Command(appName, args...)
 
 	launchCmd.Env = envVars
-	stdout, _ := launchCmd.StdoutPipe()
-	stderr, _ := launchCmd.StderrPipe()
+	stdout, errPipeStdout := launchCmd.StdoutPipe()
+	if errPipeStdout != nil {
+		libutils.PrintfStdErr("problem when getting stdout pipe for %s: %s\n", appName, errPipeStdout.Error())
+	}
+	stderr, errPipeStderr := launchCmd.StderrPipe()
+	if errPipeStderr != nil {
+		libutils.PrintfStdErr("problem when getting stderr pipe for %s: %s\n", appName, errPipeStderr.Error())
+	}
 	stdOutScanner := bufio.NewScanner(stdout)
 	stdErrScanner := bufio.NewScanner(stderr)
 	err := launchCmd.Start()
 	if err != nil {
-		_, _ = fmt.Fprintln(os.Stderr, "problem when starting", appName, err)
+		libutils.PrintlnStdErr("problem when starting", appName, err)
 	}
 
 	var chanEc = make(chan int, 1)
@@ -60,7 +65,7 @@ func LaunchAppWithOutputCallback(appName string, args []string, envVars []string
 		}
 		err = launchCmd.Wait()
 		if err != nil {
-			_, _ = fmt.Fprintln(os.Stderr, "problem when waiting process", appName, err)
+			libutils.PrintlnStdErr("problem when waiting process", appName, err)
 			chanEc <- 1
 		} else {
 			chanEc <- 0
