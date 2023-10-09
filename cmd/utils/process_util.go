@@ -18,8 +18,9 @@ func LaunchApp(appName string, args []string, envVars []string, directStd bool) 
 
 func LaunchAppWithOutputCallback(appName string, args []string, envVars []string, stdOutCallback1, stdErrCallBack1, stdOutCallback2, stdErrCallBack2 func(msg string)) int {
 	launchCmd := exec.Command(appName, args...)
-
-	launchCmd.Env = envVars
+	if len(envVars) > 0 {
+		launchCmd.Env = envVars
+	}
 	stdout, errPipeStdout := launchCmd.StdoutPipe()
 	if errPipeStdout != nil {
 		libutils.PrintfStdErr("problem when getting stdout pipe for %s: %s\n", appName, errPipeStdout.Error())
