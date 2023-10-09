@@ -23,7 +23,7 @@ const (
 	flagToolOptions           = "tool-options"
 )
 
-const rsyncOptCopyDir = "-av"
+const rsyncOptCopyDir = "--recursive"
 
 var defaultRsyncOptions = []string{"--human-readable", "--compress", "--stats"}
 
@@ -186,15 +186,28 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 		options = defaultRsyncOptions
 	}
 
-	if isSrcLocalDir && reflect.DeepEqual(options, defaultRsyncOptions) {
-		// in case copy from local dir, supply flag '-av'
-		options = append(options, rsyncOptCopyDir)
-	}
+	if isSrcLocalDir {
+		ieOptions := goe.NewIEnumerable(options...)
 
-	if !isSrcRemote && !isDestRemote { // no compress on local to local transfer
-		options = goe.NewIEnumerable(options...).Where(func(option string) bool {
-			return !strings.EqualFold(option, "--compress")
-		}).ToArray()
+		isDefaultOpts := reflect.DeepEqual(options, defaultRsyncOptions)
+
+		if isDestRemote {
+			// ignore
+		} else {
+			// local to local transfer => remove compress flag
+			ieOptions = ieOptions.Where(func(option string) bool {
+				return !strings.EqualFold(option, "--compress")
+			})
+
+			if isDefaultOpts {
+				if !ieOptions.AnyBy(isOrContainsRecursiveFlag) {
+					// in case copy from local dir, supply flag '--recursive'
+					ieOptions = ieOptions.Append(rsyncOptCopyDir)
+				}
+			}
+		}
+
+		options = ieOptions.ToArray()
 	}
 
 	logFile, _ := cmd.Flags().GetString(flagLogFile)
@@ -326,4 +339,14 @@ func launchApp(toolName string, args []string, additionalEnvVars ...string) {
 	}
 
 	fmt.Println("Finished rsync at", utils.NowStr())
+}
+
+func isOrContainsRecursiveFlag(option string) bool {
+	if strings.HasPrefix(option, "--") {
+		return strings.EqualFold(option, "--recursive")
+	} else if strings.HasPrefix(option, "-") {
+		return strings.Contains(option, "r")
+	} else {
+		return false
+	}
 }
