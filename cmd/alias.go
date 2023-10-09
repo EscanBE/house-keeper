@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"github.com/EscanBE/go-ienumerable/goe"
 	libutils "github.com/EscanBE/go-lib/utils"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/spf13/cobra"
 	"os"
@@ -97,14 +98,9 @@ var aliasCmd = &cobra.Command{
 
 		fmt.Println("Executing...")
 
-		proc := exec.Command("/bin/bash", "-c", joinedCommand)
-		proc.Stdin = os.Stdin
-		proc.Stdout = os.Stdout
-		proc.Stderr = os.Stderr
-		err := proc.Run()
-		if err != nil {
-			libutils.PrintlnStdErr("problem when run", err)
-			os.Exit(1)
+		ec := utils.LaunchAppWithDirectStd("/bin/bash", []string{"-c", joinedCommand}, nil)
+		if ec != 0 {
+			os.Exit(ec)
 		}
 	},
 }

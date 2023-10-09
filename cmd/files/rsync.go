@@ -9,7 +9,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
-	"os/exec"
 	"strings"
 )
 
@@ -343,23 +342,11 @@ func launchApp(toolName string, args []string, additionalEnvVars []string, direc
 
 	defer fmt.Println("Finished rsync at", utils.NowStr())
 
-	if directStd {
-		proc := exec.Command(toolName, args...)
-		proc.Env = envVars
-		proc.Stdin = os.Stdin
-		proc.Stdout = os.Stdout
-		proc.Stderr = os.Stderr
-		err := proc.Run()
-		if err != nil {
-			libutils.PrintlnStdErr("rsync error:", err)
-			os.Exit(1)
-		}
-	} else {
-		exitCode := utils.LaunchApp(toolName, args, envVars)
-		if exitCode != 0 {
-			fmt.Println("Failed rsync at", utils.NowStr())
-			os.Exit(exitCode)
-		}
+	ec := utils.LaunchApp(toolName, args, envVars, directStd)
+
+	if ec != 0 {
+		libutils.PrintlnStdErr("Failed to rsync at", utils.NowStr())
+		os.Exit(ec)
 	}
 }
 
