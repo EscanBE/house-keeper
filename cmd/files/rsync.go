@@ -8,7 +8,6 @@ import (
 	"github.com/pkg/errors"
 	"github.com/spf13/cobra"
 	"os"
-	"reflect"
 	"strings"
 )
 
@@ -23,7 +22,7 @@ const (
 	flagToolOptions           = "tool-options"
 )
 
-const rsyncOptCopyDir = "-av"
+const rsyncOptCopyDir = "--recursive"
 
 var defaultRsyncOptions = []string{"--human-readable", "--compress", "--stats"}
 
@@ -42,9 +41,9 @@ Note:
 - This is just a wrapper of rsync, you must know how to use rsync and got rsync installed in order to use this.
   Actual translated rsync command would look similar to:
   > /usr/bin/rsync --human-readable --compress --stats -e ssh "server:/var/logs/*.log" "/mnt/md0/backup/logs"
-- In case copy directory from local and omitted flag --%s, the argument '%s' will be passed to rsync by default to indicate coping directory.
+- In case copy directory from local, the argument '%s' will be passed to rsync to indicate coping directory.
 - When transfer from/to remote server, you must connect to that remote server at least one time before to perform host key verification (one time action) because the transfer will be performed via ssh.
-`, constants.BINARY_NAME, constants.BINARY_NAME, flagToolOptions, rsyncOptCopyDir),
+`, constants.BINARY_NAME, constants.BINARY_NAME, rsyncOptCopyDir),
 		Args: cobra.ExactArgs(2),
 		Run:  remoteTransferFile,
 	}
@@ -186,15 +185,22 @@ func remoteTransferFile(cmd *cobra.Command, args []string) {
 		options = defaultRsyncOptions
 	}
 
-	if isSrcLocalDir && reflect.DeepEqual(options, defaultRsyncOptions) {
-		// in case copy from local dir, supply flag '-av'
-		options = append(options, rsyncOptCopyDir)
-	}
+	if isSrcLocalDir {
+		ieOptions := goe.NewIEnumerable(options...)
 
-	if !isSrcRemote && !isDestRemote { // no compress on local to local transfer
-		options = goe.NewIEnumerable(options...).Where(func(option string) bool {
-			return !strings.EqualFold(option, "--compress")
-		}).ToArray()
+		if !isDestRemote {
+			// local to local transfer => remove compress flag
+			ieOptions = ieOptions.Where(func(option string) bool {
+				return !strings.EqualFold(option, "--compress")
+			})
+		}
+
+		if !ieOptions.AnyBy(isOrContainsRsyncRecursiveFlag) {
+			// in case copy from local dir, supply flag '--recursive'
+			ieOptions = ieOptions.Append(rsyncOptCopyDir)
+		}
+
+		options = ieOptions.ToArray()
 	}
 
 	logFile, _ := cmd.Flags().GetString(flagLogFile)
@@ -326,4 +332,14 @@ func launchApp(toolName string, args []string, additionalEnvVars ...string) {
 	}
 
 	fmt.Println("Finished rsync at", utils.NowStr())
+}
+
+func isOrContainsRsyncRecursiveFlag(option string) bool {
+	if strings.HasPrefix(option, "--") {
+		return strings.EqualFold(option, "--recursive") || strings.EqualFold(option, "--archive")
+	} else if strings.HasPrefix(option, "-") {
+		return strings.Contains(option, "r") || strings.Contains(option, "a")
+	} else {
+		return false
+	}
 }
