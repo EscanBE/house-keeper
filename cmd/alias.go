@@ -129,28 +129,29 @@ func registerStartupPredefinedAliases() {
 		if !isUserRoot && hasBinary {
 			nodeHome := path.Join(home, "."+binaryName)
 			if _, err := os.Stat(nodeHome); err == nil {
+				homeActualPath, err := utils.TryReadSymlink(nodeHome)
+				if err != nil { // blind accept
+					homeActualPath = nodeHome
+				}
+				nodeData := path.Join(homeActualPath, "data")
+				dataActualPath, err := utils.TryReadSymlink(nodeData)
+				if err != nil { // blind accept
+					dataActualPath = nodeData
+				}
 
-				entries, err := os.ReadDir(nodeHome)
-				if err == nil {
-					var totalSize int64
-					for _, entry := range entries {
-						if entry.IsDir() {
-							continue
-						}
-						file, err := entry.Info()
-						if err == nil {
-							totalSize += file.Size()
-						}
-					}
+				const notSupportCommandResetIfDataSizeGETerrabyte = 1.0
+				const notSupportCommandResetIfDataSizeGEBytes = int64(notSupportCommandResetIfDataSizeGETerrabyte * 1_000_000_000_000)
 
-					const notSupportCommandResetIfDataSizeGETerrabyte = 1
-					const notSupportCommandResetIfDataSizeGEBytes = notSupportCommandResetIfDataSizeGETerrabyte * 1_000_000_000_000
+				totalSize, err := utils.SumDirectorySize(dataActualPath, notSupportCommandResetIfDataSizeGEBytes)
+				if err == nil || utils.IsErrorLimitSumDirectorySizeReached(err) {
 					resetAlias := fmt.Sprintf("%sreset", prefix)
 					if totalSize >= notSupportCommandResetIfDataSizeGEBytes {
-						libutils.PrintfStdErr("WARN: %s is not supported for node with data size >= %d TB\n", resetAlias, notSupportCommandResetIfDataSizeGETerrabyte)
+						libutils.PrintfStdErr("WARN: %s is not supported for node with data size >= %.2f TB\n", resetAlias, notSupportCommandResetIfDataSizeGETerrabyte)
 					} else {
 						registerPredefinedAlias(resetAlias, []string{binaryName, "tendermint", "unsafe-reset-all", "--home", nodeHome, "--keep-addr-book"}, nil)
 					}
+				} else {
+					libutils.PrintfStdErr("WARN: failed to calculate total data size of %s: %s\n", dataActualPath, err.Error())
 				}
 			}
 		}
