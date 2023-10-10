@@ -13,6 +13,11 @@ import (
 	"path"
 	"regexp"
 	"strings"
+	"time"
+)
+
+const (
+	flagConfirmExecution = "yes"
 )
 
 var predefinedAliases map[string]predefinedAlias
@@ -69,30 +74,41 @@ var aliasCmd = &cobra.Command{
 
 		joinedCommand := strings.Join(command, " ")
 
-		fmt.Println("Are you sure want to execute the following command?")
-		fmt.Printf("> %s\n", joinedCommand)
-		fmt.Printf("(actual command: [/bin/bash] [-c] [%s])\n", joinedCommand)
-		fmt.Println("Yes/No?")
+		confirmExecution, _ := cmd.Flags().GetBool(flagConfirmExecution)
 
-		reader := bufio.NewReader(os.Stdin)
-		text, _ := reader.ReadString('\n')
-		text = strings.TrimSpace(strings.ToLower(text))
+		if confirmExecution {
+			const waitingTime = 10
+			fmt.Println("Pending execution command:")
+			fmt.Printf("> %s\n", joinedCommand)
+			fmt.Printf("(actual command: [/bin/bash] [-c] [%s])\n", joinedCommand)
+			fmt.Printf("Executing in %d seconds...\n", waitingTime)
+			time.Sleep(waitingTime * time.Second)
+		} else {
+			fmt.Println("Are you sure want to execute the following command?")
+			fmt.Printf("> %s\n", joinedCommand)
+			fmt.Printf("(actual command: [/bin/bash] [-c] [%s])\n", joinedCommand)
+			fmt.Println("Yes/No?")
 
-		switch text {
-		case "y":
-			break
-		case "yes":
-			break
-		case "n":
-			fmt.Println("Aborted")
-			os.Exit(1)
-		case "no":
-			fmt.Println("Aborted")
-			os.Exit(1)
-		default:
-			fmt.Printf("Aborted! '%s' is not an accepted answer!\n", text)
-			fmt.Println("Your answer must be Yes/No (or Y/N)")
-			os.Exit(1)
+			reader := bufio.NewReader(os.Stdin)
+			text, _ := reader.ReadString('\n')
+			text = strings.TrimSpace(strings.ToLower(text))
+
+			switch text {
+			case "y":
+				break
+			case "yes":
+				break
+			case "n":
+				fmt.Println("Aborted")
+				os.Exit(1)
+			case "no":
+				fmt.Println("Aborted")
+				os.Exit(1)
+			default:
+				fmt.Printf("Aborted! '%s' is not an accepted answer!\n", text)
+				fmt.Println("Your answer must be Yes/No (or Y/N)")
+				os.Exit(1)
+			}
 		}
 
 		fmt.Println("Executing...")
@@ -304,6 +320,12 @@ func isExistsServiceFile(serviceName string) bool {
 }
 
 func init() {
+	aliasCmd.PersistentFlags().Bool(
+		flagConfirmExecution,
+		false,
+		"skip confirmation before executing the command, but wait few seconds before executing",
+	)
+
 	rootCmd.AddCommand(aliasCmd)
 }
 
