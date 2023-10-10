@@ -11,6 +11,7 @@ import (
 	"path"
 	"path/filepath"
 	"strings"
+	"time"
 )
 
 const (
@@ -61,6 +62,7 @@ var downloadCmd = &cobra.Command{
 			return
 		} else {
 			fmt.Println("WARN: it is recommended to install aria2c for better performance: sudo apt install -y aria2")
+			time.Sleep(10 * time.Second)
 		}
 
 		if hasBinaryName("wget") {
@@ -74,6 +76,7 @@ var downloadCmd = &cobra.Command{
 			if len(outputFileName) < 1 {
 				r, _ := http.NewRequest("GET", args[0], nil)
 				outputFileName = path.Base(r.URL.Path)
+				fmt.Println("File will be downloaded as", outputFileName)
 			}
 			launchDownloadCurl(args[0], workingDir, outputFileName)
 			return
