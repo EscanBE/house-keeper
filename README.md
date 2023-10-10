@@ -70,6 +70,18 @@ House-keeper defined a set of command aliases to help your life easier
 
 _Defined your own aliases by create a TSV `~/.hkd_alias`_
 
+#### Download file
+> hkd download --help
+
+> hkd dl https://escan.live/images/logo-light.svg
+
+> hkd download https://escan.live/images/logo-light.svg --concurrent 4 --output-file logo.svg --working-directory ~/Downloads
+
+Notes:
+- Priority download tools: aria2c > wget > curl
+- The flag `--concurrent` is only used when aria2c is used as download tool
+- Default concurrent download is 4 for speed up download process
+
 #### Checking tools used by house-keeper
 > hkd verify-tools
 
