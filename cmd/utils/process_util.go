@@ -83,13 +83,19 @@ func LaunchAppWithOutputCallback(appName string, args []string, envVars []string
 }
 
 func LaunchAppWithDirectStd(appName string, args []string, envVars []string) int {
+	return LaunchAppWithSetup(appName, args, func(launchCmd *exec.Cmd) {
+		if len(envVars) > 0 {
+			launchCmd.Env = envVars
+		}
+		launchCmd.Stdin = os.Stdin
+		launchCmd.Stdout = os.Stdout
+		launchCmd.Stderr = os.Stderr
+	})
+}
+
+func LaunchAppWithSetup(appName string, args []string, setup func(launchCmd *exec.Cmd)) int {
 	launchCmd := exec.Command(appName, args...)
-	if len(envVars) > 0 {
-		launchCmd.Env = envVars
-	}
-	launchCmd.Stdin = os.Stdin
-	launchCmd.Stdout = os.Stdout
-	launchCmd.Stderr = os.Stderr
+	setup(launchCmd)
 	err := launchCmd.Run()
 	if err != nil {
 		libutils.PrintfStdErr("problem when running process %s: %s\n", appName, err.Error())
