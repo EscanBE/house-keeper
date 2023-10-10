@@ -9,7 +9,6 @@ import (
 	"github.com/EscanBE/house-keeper/constants"
 	"github.com/spf13/cobra"
 	"os"
-	"os/exec"
 	"os/user"
 	"path"
 	"regexp"
@@ -120,7 +119,7 @@ func registerStartupPredefinedAliases() {
 	isUserRoot := currentUser.Username == "root"
 
 	registerPredefinedAliasForNode := func(binaryName, prefix string) {
-		hasBinary := hasBinaryName(binaryName)
+		hasBinary := utils.HasBinaryName(binaryName)
 		if hasBinary || isExistsServiceFile(binaryName) {
 			registerPredefinedAlias(fmt.Sprintf("%srs", prefix), []string{"sudo", "systemctl", "restart", binaryName}, nil)
 			registerPredefinedAlias(fmt.Sprintf("%sstop", prefix), []string{"sudo", "systemctl", "stop", binaryName}, nil)
@@ -170,14 +169,14 @@ func registerStartupPredefinedAliases() {
 	registerPredefinedAliasForNode("gaid", "ga")
 
 	// Manage indexer
-	if hasBinaryName("crawld") || isExistsServiceFile("crawld") {
+	if utils.HasBinaryName("crawld") || isExistsServiceFile("crawld") {
 		registerPredefinedAlias("ecrs", []string{"sudo", "systemctl", "restart", "crawld"}, nil)
 		registerPredefinedAlias("ecstop", []string{"sudo", "systemctl", "stop", "crawld"}, nil)
 		registerPredefinedAlias("ecl [?since]", []string{"sudo", "journalctl", "-fu", "crawld"}, &genericAlterJournalctl)
 	}
 
 	// Manage proxy
-	if hasBinaryName("epod") || isExistsServiceFile("epod") {
+	if utils.HasBinaryName("epod") || isExistsServiceFile("epod") {
 		registerPredefinedAlias("eprs", []string{"sudo", "systemctl", "restart", "epod"}, nil)
 		registerPredefinedAlias("epstop", []string{"sudo", "systemctl", "stop", "epod"}, nil)
 		registerPredefinedAlias("epl [?since]", []string{"sudo", "journalctl", "-fu", "epod"}, &genericAlterJournalctl)
@@ -291,11 +290,6 @@ func registerPredefinedAlias(use string, defaultCommand []string, alter *command
 		alter:   alter,
 	}
 	longestUseDesc = libutils.MaxInt(longestUseDesc, len(use))
-}
-
-func hasBinaryName(binaryName string) bool {
-	_, err := exec.LookPath(binaryName)
-	return err == nil
 }
 
 func isExistsServiceFile(serviceName string) bool {

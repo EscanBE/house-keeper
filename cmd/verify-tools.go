@@ -2,6 +2,8 @@ package cmd
 
 import (
 	"fmt"
+	libutils "github.com/EscanBE/go-lib/utils"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
@@ -21,30 +23,34 @@ var verifyToolsCmd = &cobra.Command{
 			}
 		}()
 
-		cmdAppPgDump := exec.Command("pg_dump", "--help")
-		if err := cmdAppPgDump.Run(); err != nil {
-			fmt.Println("pg_dump might not exists", err)
+		fmt.Println("Mandatory tools checking...")
+
+		if !utils.HasBinaryName("pg_dump") {
+			libutils.PrintlnStdErr("- \"pg_dump\" might not exists")
 			anyMandatoryToolsError = true
 		}
 
-		cmdAppRsync := exec.Command("rsync", "--help")
-		if err := cmdAppRsync.Run(); err != nil {
-			fmt.Println("rsync might not exists", err)
+		if !utils.HasBinaryName("rsync") {
+			libutils.PrintlnStdErr("- \"rsync\" might not exists")
 			anyMandatoryToolsError = true
 		}
 
-		cmdAppSshPass := exec.Command("sshpass", "-V")
-		if err := cmdAppSshPass.Run(); err != nil {
-			fmt.Println("sshpass might not exists", err)
+		if !utils.HasBinaryName("sshpass") {
+			libutils.PrintlnStdErr("- \"sshpass\" might not exists")
 			anyMandatoryToolsError = true
 		}
 
-		cmdAppSha1Sum := exec.Command("sha1sum", "--version")
-		if err := cmdAppSha1Sum.Run(); err != nil {
-			cmdAppShaSum := exec.Command("shasum", "--version")
-			if err := cmdAppShaSum.Run(); err != nil {
-				fmt.Println("both applications shasum and sha1sum might not exists", err)
-				anyMandatoryToolsError = true
+		if !utils.HasBinaryName("sha1sum") && !utils.HasBinaryName("shasum") {
+			libutils.PrintlnStdErr("- Both applications \"shasum\" and \"sha1sum\" might not exists")
+			anyMandatoryToolsError = true
+		}
+
+		if !utils.HasBinaryName("aria2c") {
+			libutils.PrintlnStdErr("- \"aria2c\" might not exists")
+			anyMandatoryToolsError = true
+
+			if !utils.HasBinaryName("wget") {
+				libutils.PrintlnStdErr("- \"wget\" might not exists")
 			}
 		}
 

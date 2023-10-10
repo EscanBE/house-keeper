@@ -57,7 +57,7 @@ var downloadCmd = &cobra.Command{
 			}
 		}
 
-		if hasBinaryName("aria2c") {
+		if utils.HasBinaryName("aria2c") {
 			launchDownloadAria2c(args[0], concurrent, workingDir, outputFileName)
 			return
 		} else {
@@ -65,13 +65,13 @@ var downloadCmd = &cobra.Command{
 			time.Sleep(10 * time.Second)
 		}
 
-		if hasBinaryName("wget") {
+		if utils.HasBinaryName("wget") {
 			fmt.Println("WARN: aria2c is not installed, fallback to wget")
 			launchDownloadWget(args[0], workingDir, outputFileName)
 			return
 		}
 
-		if hasBinaryName("curl") {
+		if utils.HasBinaryName("curl") {
 			fmt.Println("WARN: aria2c & wget are not installed, fallback to curl")
 			if len(outputFileName) < 1 {
 				r, _ := http.NewRequest("GET", args[0], nil)
