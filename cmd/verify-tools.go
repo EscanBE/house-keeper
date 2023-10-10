@@ -3,6 +3,7 @@ package cmd
 import (
 	"fmt"
 	libutils "github.com/EscanBE/go-lib/utils"
+	"github.com/EscanBE/house-keeper/cmd/utils"
 	"github.com/spf13/cobra"
 	"os"
 	"os/exec"
@@ -24,27 +25,27 @@ var verifyToolsCmd = &cobra.Command{
 
 		fmt.Println("Mandatory tools checking...")
 
-		if !hasBinaryName("pg_dump") {
+		if !utils.HasBinaryName("pg_dump") {
 			libutils.PrintlnStdErr("- \"pg_dump\" might not exists")
 			anyMandatoryToolsError = true
 		}
 
-		if !hasBinaryName("rsync") {
+		if !utils.HasBinaryName("rsync") {
 			libutils.PrintlnStdErr("- \"rsync\" might not exists")
 			anyMandatoryToolsError = true
 		}
 
-		if !hasBinaryName("sshpass") {
+		if !utils.HasBinaryName("sshpass") {
 			libutils.PrintlnStdErr("- \"sshpass\" might not exists")
 			anyMandatoryToolsError = true
 		}
 
-		if !hasBinaryName("sha1sum") && !hasBinaryName("shasum") {
+		if !utils.HasBinaryName("sha1sum") && !utils.HasBinaryName("shasum") {
 			libutils.PrintlnStdErr("- Both applications \"shasum\" and \"sha1sum\" might not exists")
 			anyMandatoryToolsError = true
 		}
 
-		if !hasBinaryName("aria2c") {
+		if !utils.HasBinaryName("aria2c") {
 			libutils.PrintlnStdErr("- \"aria2c\" might not exists")
 			anyMandatoryToolsError = true
 		}

@@ -67,3 +67,8 @@ var errLimitReached = fmt.Errorf("limit reached")
 func IsErrorLimitSumDirectorySizeReached(err error) bool {
 	return err == errLimitReached
 }
+
+func HasBinaryName(binaryName string) bool {
+	_, err := exec.LookPath(binaryName)
+	return err == nil
+}
