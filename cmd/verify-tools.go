@@ -48,6 +48,10 @@ var verifyToolsCmd = &cobra.Command{
 		if !utils.HasBinaryName("aria2c") {
 			libutils.PrintlnStdErr("- \"aria2c\" might not exists")
 			anyMandatoryToolsError = true
+
+			if !utils.HasBinaryName("wget") {
+				libutils.PrintlnStdErr("- \"wget\" might not exists")
+			}
 		}
 
 		if !anyMandatoryToolsError {
