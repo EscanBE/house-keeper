@@ -3,7 +3,9 @@ package utils
 import (
 	"fmt"
 	libutils "github.com/EscanBE/go-lib/utils"
+	"github.com/pkg/errors"
 	"io/fs"
+	"os"
 	"strconv"
 )
 
@@ -18,4 +20,21 @@ func ValidatePasswordFileMode(mode fs.FileMode) error {
 		return fmt.Errorf("require read permission")
 	}
 	return nil
+}
+
+func IsFileAndExists(file string) (bool, error) {
+	fi, err := os.Stat(file)
+	if err != nil {
+		if os.IsNotExist(err) {
+			return false, nil
+		}
+
+		return false, errors.Wrap(err, fmt.Sprintf("problem while checking target file %s", file))
+	}
+
+	if fi.IsDir() {
+		return false, nil
+	}
+
+	return true, nil
 }
