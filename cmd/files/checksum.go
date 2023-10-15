@@ -270,8 +270,8 @@ func writeToChecksumCacheFile(outputFilePath string, content string) {
 	}(outputFile)
 
 	if _, err := outputFile.WriteString(content); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "failed to write content [%s] to checksum cache file [%s]", content, outputFilePath)
-		_, _ = fmt.Fprintln(os.Stderr, err)
+		libutils.PrintfStdErr("failed to write content [%s] to checksum cache file [%s]\n", content, outputFilePath)
+		libutils.PrintlnStdErr(err)
 	}
 }
 
@@ -296,8 +296,8 @@ func writeToOutputFile(outputFilePath string, content string) {
 	}
 
 	if _, err := outputFile.WriteString(content); err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "failed to append content [%s] to output file [%s]", content, outputFilePath)
-		_, _ = fmt.Fprintln(os.Stderr, err)
+		libutils.PrintfStdErr("failed to append content [%s] to output file [%s]", content, outputFilePath)
+		libutils.PrintlnStdErr(err)
 	}
 }
 
