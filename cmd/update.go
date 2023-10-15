@@ -29,7 +29,7 @@ var updateCmd = &cobra.Command{
 			}
 		}
 
-		ec := utils.LaunchApp("go", []string{"install", "-v", fmt.Sprintf("github.com/EscanBE/house-keeper/cmd/hkd@%s", version)}, nil, true)
+		ec := utils.LaunchApp("go", []string{"install", "-v", fmt.Sprintf("github.com/EscanBE/house-keeper/cmd/%s@%s", constants.BINARY_NAME, version)}, nil, true)
 		if ec != 0 {
 			libutils.PrintfStdErr("Exited with status code: %d\n", ec)
 			os.Exit(ec)
@@ -37,7 +37,7 @@ var updateCmd = &cobra.Command{
 
 		fmt.Println("Updated", constants.BINARY_NAME)
 		fmt.Printf("%s => ", constants.VERSION)
-		_ = utils.LaunchApp(constants.BINARY_NAME, []string{"version"}, nil, true)
+		_ = utils.LaunchAppWithDirectStd(constants.BINARY_NAME, []string{"version"}, nil)
 	},
 }
 

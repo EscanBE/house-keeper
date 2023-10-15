@@ -260,7 +260,7 @@ func writeToChecksumCacheFile(outputFilePath string, content string) {
 
 	outputFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "failed to open checksum cache file [%s] to write content [%s]", outputFilePath, content)
+		libutils.PrintfStdErr("failed to open checksum cache file [%s] to write content [%s]\n", outputFilePath, content)
 	}
 
 	defer func(outputFile *os.File) {
@@ -282,7 +282,7 @@ func writeToOutputFile(outputFilePath string, content string) {
 
 	outputFile, err := os.OpenFile(outputFilePath, os.O_APPEND|os.O_CREATE|os.O_WRONLY, 0644)
 	if err != nil {
-		_, _ = fmt.Fprintf(os.Stderr, "failed to open file [%s] to write content [%s]", outputFilePath, content)
+		libutils.PrintfStdErr("failed to open file [%s] to write content [%s]\n", outputFilePath, content)
 	}
 
 	defer func(outputFile *os.File) {
